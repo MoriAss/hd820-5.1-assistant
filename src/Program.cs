@@ -45,11 +45,15 @@ namespace Hd820GameBridge {
   internal static string SourceId {get{return RuntimeConfig.ResolveEndpoint(true).Id;}}
   internal static string OutputId {get{return RuntimeConfig.ResolveEndpoint(false).Id;}}
   internal static string Root {get{return AppDomain.CurrentDomain.BaseDirectory;}}
+  internal static string DisplayVersion {get{var version=typeof(Program).Assembly.GetName().Version;return version.Major+"."+version.Minor+"."+version.Build;}}
   internal static string Ffmpeg {get{return RuntimeConfig.FindFfmpeg(Root,Environment.GetEnvironmentVariable("PATH"));}}
   internal static byte[] Silence {get{return File.ReadAllBytes(Path.Combine(Root,"silence-ac3-640k.spdif"));}}
   [STAThread] static int Main(string[] args){
    bool gui=args.All(a=>a=="--background" || a=="--autostart" || a=="--show");
    bool exit=args.Length==1 && args[0]=="--exit";
+   if(args.Length==1 && args[0]=="--diagnose"){
+    try{RuntimeConfig.AtomicWrite(Path.Combine(Root,"diagnostics-latest.txt"),Preflight.Run(Root));return 0;}catch(Exception error){WriteLastError(error);return 1;}
+   }
    // Startup settings have their own lock and must remain usable while the GUI owns the audio mutex.
    if(args.Length==1 && (args[0]=="--enable-startup" || args[0]=="--disable-startup")){
     try{Directory.CreateDirectory(Path.Combine(Root,"logs"));return Command(args);}catch(Exception error){WriteLastError(error);return 1;}
@@ -101,6 +105,8 @@ namespace Hd820GameBridge {
  internal sealed class MainForm : Form {
   readonly ModernCombo source=new ModernCombo(),output=new ModernCombo();
   readonly ModernButton start=new ModernButton(ModernButton.Kind.Primary),stop=new ModernButton(ModernButton.Kind.Default),test=new ModernButton(ModernButton.Kind.Ghost),refresh=new ModernButton(ModernButton.Kind.Ghost),restore=new ModernButton(ModernButton.Kind.Ghost);
+  readonly ModernButton diagnose=new ModernButton(ModernButton.Kind.Ghost);
+  readonly Label startupCaption=new Label();
   readonly Label status=new Label(),details=new Label(),gainLabel=new Label(),bassLabel=new Label();
   readonly ModernSwitch bassToggle=new ModernSwitch(),latencyToggle=new ModernSwitch(),startupToggle=new ModernSwitch();
   readonly ModernSlider gain=new ModernSlider(),bassLevel=new ModernSlider();
@@ -118,7 +124,7 @@ namespace Hd820GameBridge {
   readonly object lifecycleGate=new object();
   readonly ManualResetEvent startupCancellation=new ManualResetEvent(false);
   BridgeEngine pendingEngine;Thread startupWorker;
-  BridgeEngine engine;bool busy,testMode,startHidden,loadingPreferences,autoStartPending,errorState;volatile bool exitRequested;
+  BridgeEngine engine;bool busy,testMode,startHidden,loadingPreferences,autoStartPending,errorState,stoppingBridge;volatile bool exitRequested;
   bool restoringWindow,hidingToTray;
   DateTime testStarted,nextAutoStart,autoStartDeadline;
   DateTime nextTelemetry;
@@ -127,6 +133,11 @@ namespace Hd820GameBridge {
   int telemetryWriterRunning;
   string preferredSource,preferredOutput;
   string logPath;
+  bool preferencesDirty,startupStateKnown,diagnosticBusy;
+  DateTime preferencesWriteDue;
+  string preferencesWriteError,startupReadError;
+  string pendingDiagnosticReport;
+  readonly int foregroundTelemetryMs=RuntimeConfig.TelemetryIntervalMilliseconds(true),backgroundTelemetryMs=RuntimeConfig.TelemetryIntervalMilliseconds(false);
   readonly int uiThreadId=Thread.CurrentThread.ManagedThreadId;
   readonly ConcurrentQueue<string> queuedLogs=new ConcurrentQueue<string>();
   int queuedLogCount,skippedLogCount;
@@ -136,23 +147,23 @@ namespace Hd820GameBridge {
   internal MainForm(bool background,bool autoStart,EventWaitHandle showSignal,EventWaitHandle exitSignal){
    startHidden=background;autoStartPending=autoStart;showRequest=showSignal;exitRequest=exitSignal;ShowInTaskbar=!background;
    nextAutoStart=DateTime.UtcNow.AddSeconds(2);autoStartDeadline=DateTime.UtcNow.AddMinutes(2);
-   Text="HD820 游戏 5.1 助手 · v3.3.2 · 六声道电平";ClientSize=new Size(860,Math.Min(980,Math.Max(640,Screen.PrimaryScreen.WorkingArea.Height-90)));MinimumSize=new Size(730,680);StartPosition=FormStartPosition.CenterScreen;Font=new Font("Microsoft YaHei UI",9.75f);BackColor=UiTheme.Window;AutoScaleMode=AutoScaleMode.Dpi;AutoScroll=true;AutoScrollMinSize=new Size(0,980);
+   Text="HD820 游戏 5.1 助手 · v"+Program.DisplayVersion+" · 六声道电平";ClientSize=new Size(860,Math.Min(980,Math.Max(640,Screen.PrimaryScreen.WorkingArea.Height-90)));MinimumSize=new Size(730,680);StartPosition=FormStartPosition.CenterScreen;Font=new Font("Microsoft YaHei UI",9.75f);BackColor=UiTheme.Window;AutoScaleMode=AutoScaleMode.Dpi;AutoScroll=true;AutoScrollMinSize=new Size(0,980);
    content.Location=Point.Empty;content.Size=new Size(ClientSize.Width,980);content.Anchor=AnchorStyles.Top|AnchorStyles.Left;content.BackColor=UiTheme.Window;base.Controls.Add(content);
    Layout+=delegate{if(content.Width!=ClientSize.Width)content.Width=ClientSize.Width;};
    try{using(var appIcon=Icon.ExtractAssociatedIcon(Application.ExecutablePath)){if(appIcon!=null)Icon=new Icon(appIcon,appIcon.Width,appIcon.Height);}}catch{}
    // 顶部：标题 + 副标题 + 状态胶囊
-   content.Controls.Add(new Label{Text="HD820 游戏 5.1 助手 · v3.3.2",Font=new Font(Font.FontFamily,15.5f,FontStyle.Bold),ForeColor=UiTheme.PrimaryText,AutoSize=true,Location=new Point(28,16)});
+   content.Controls.Add(new Label{Text="HD820 游戏 5.1 助手 · v"+Program.DisplayVersion,Font=new Font(Font.FontFamily,15.5f,FontStyle.Bold),ForeColor=UiTheme.PrimaryText,AutoSize=true,Location=new Point(28,16)});
    content.Controls.Add(new Label{Text="游戏 5.1 → 实时 AC3 → HD820 → 六路音箱",Font=new Font(Font.FontFamily,9f),ForeColor=UiTheme.SecondaryText,AutoSize=true,Location=new Point(31,56)});
    pill.Location=new Point(ClientSize.Width-24-92,20);pill.Anchor=AnchorStyles.Top|AnchorStyles.Right;pill.SetState("就绪",UiTheme.Gray,UiTheme.GrayBack,UiTheme.Gray);content.Controls.Add(pill);
    // 卡片1：音频链路
    var linkCard=new CardPanel{Location=new Point(20,88),Size=new Size(ClientSize.Width-40,134),Anchor=AnchorStyles.Top|AnchorStyles.Left|AnchorStyles.Right,TitleText="音频链路"};
    int innerW=linkCard.ClientSize.Width-28;
    startupToggle.Location=new Point(innerW-46,7);startupToggle.Anchor=AnchorStyles.Top|AnchorStyles.Right;linkCard.Controls.Add(startupToggle);
-   var startupCaption=new Label{Text="开机自启动",Font=new Font(Font.FontFamily,8.5f),ForeColor=UiTheme.SecondaryText,AutoSize=true,Location=new Point(innerW-112,12),Anchor=AnchorStyles.Top|AnchorStyles.Right};linkCard.Controls.Add(startupCaption);
+   startupCaption.Text="开机自启动";startupCaption.Font=new Font(Font.FontFamily,8.5f);startupCaption.ForeColor=UiTheme.SecondaryText;startupCaption.AutoSize=true;startupCaption.Location=new Point(innerW-112,12);startupCaption.Anchor=AnchorStyles.Top|AnchorStyles.Right;linkCard.Controls.Add(startupCaption);
    linkCard.Controls.Add(new Label{Text="游戏入口",AutoSize=true,Location=new Point(14,50)});
    source.Location=new Point(132,42);source.Size=new Size(innerW-132,32);source.Anchor=AnchorStyles.Top|AnchorStyles.Left|AnchorStyles.Right;source.PlaceholderText="未检测到 Voicemeeter 5.1 入口";linkCard.Controls.Add(source);
    linkCard.Controls.Add(new Label{Text="HD820 输出",AutoSize=true,Location=new Point(14,92)});
-   output.Location=new Point(132,84);output.Size=new Size(innerW-132,32);output.Anchor=AnchorStyles.Top|AnchorStyles.Left|AnchorStyles.Right;output.PlaceholderText="未检测到 HD820 数字输出";linkCard.Controls.Add(output);
+   output.Location=new Point(132,84);output.Size=new Size(innerW-132,32);output.Anchor=AnchorStyles.Top|AnchorStyles.Left|AnchorStyles.Right;output.PlaceholderText="请手动确认并选择 HD820 数字输出";linkCard.Controls.Add(output);
    content.Controls.Add(linkCard);
    // 卡片2：声音调节
    var soundCard=new CardPanel{Location=new Point(20,232),Size=new Size(ClientSize.Width-40,168),Anchor=AnchorStyles.Top|AnchorStyles.Left|AnchorStyles.Right,TitleText="声音调节"};
@@ -174,7 +185,8 @@ namespace Hd820GameBridge {
    test.Text="逐声道测试";test.Location=new Point(418,40);test.Size=new Size(150,40);ctrlCard.Controls.Add(test);
    refresh.Text="刷新设备";refresh.Location=new Point(14,92);refresh.Size=new Size(120,34);ctrlCard.Controls.Add(refresh);
    restore.Text="恢复原输出";restore.Location=new Point(142,92);restore.Size=new Size(120,34);ctrlCard.Controls.Add(restore);
-   ctrlCard.Controls.Add(new Label{Text="关闭窗口继续在托盘运行；退出助手才恢复原输出。",Font=new Font(Font.FontFamily,8.5f),ForeColor=UiTheme.MutedText,AutoSize=true,Location=new Point(278,99)});
+   diagnose.Text="无声检查";diagnose.Location=new Point(278,92);diagnose.Size=new Size(120,34);diagnose.Click+=delegate{StartDiagnostics();};ctrlCard.Controls.Add(diagnose);
+   ctrlCard.Controls.Add(new Label{Text="关闭退托盘；退出才恢复输出。",Font=new Font(Font.FontFamily,8.5f),ForeColor=UiTheme.MutedText,AutoSize=true,Location=new Point(414,99)});
    content.Controls.Add(ctrlCard);
    // 卡片4：状态与日志
    var logCard=new CardPanel{Location=new Point(20,790),Size=new Size(ClientSize.Width-40,176),Anchor=AnchorStyles.Top|AnchorStyles.Left|AnchorStyles.Right,TitleText="状态与日志"};
@@ -189,8 +201,7 @@ namespace Hd820GameBridge {
    bassToggle.CheckedChanged+=delegate{bassLevel.Enabled=bassToggle.Checked;if(engine!=null)engine.BassEnabled=bassToggle.Checked && !testMode;SavePreferences();};
    latencyToggle.Checked=true;
    latencyToggle.CheckedChanged+=delegate{if(engine!=null)engine.LowLatencyEnabled=latencyToggle.Checked;SavePreferences();};
-   try{startupToggle.Checked=AppLifetime.StartupEnabled;}catch{}
-   startupToggle.CheckedChanged+=HandleStartupChanged;
+   RefreshStartupState();
    ConfigureTray();LoadPreferences();
    source.SelectedIndexChanged+=delegate{if(!loadingPreferences){SavePreferences();SetButtons();}};
    output.SelectedIndexChanged+=delegate{if(!loadingPreferences){SavePreferences();SetButtons();}};
@@ -203,16 +214,19 @@ namespace Hd820GameBridge {
    Resize+=delegate{meterTimer.Enabled=Visible && WindowState!=FormWindowState.Minimized;};
    lifecycleTimer.Interval=400;lifecycleTimer.Tick+=delegate{
     DrainLogs();
+    if(preferencesDirty && DateTime.UtcNow>=preferencesWriteDue)FlushPreferences();
     if(exitRequested){if(DateTime.UtcNow>=nextExitAttempt){nextExitAttempt=DateTime.UtcNow.AddSeconds(2);Close();}return;}
     if(exitRequest!=null && exitRequest.WaitOne(0)){RequestExit();return;}
     if(showRequest!=null && showRequest.WaitOne(0))ShowControlPanel();
     TryAutoStart();UpdateTray();
    };lifecycleTimer.Start();
    timer.Interval=400;timer.Tick+=delegate{
-    if(engine==null || busy)return;if(DateTime.UtcNow>=nextTelemetry){nextTelemetry=DateTime.UtcNow.AddSeconds(2);SaveTelemetry();}
+    if(engine==null || busy)return;if(DateTime.UtcNow>=nextTelemetry){nextTelemetry=DateTime.UtcNow.AddMilliseconds(Visible && WindowState!=FormWindowState.Minimized?foregroundTelemetryMs:backgroundTelemetryMs);SaveTelemetry();}
     if(engine.Error!=null){AddLog(engine.Error);tray.ShowBalloonTip(4000,"HD820 5.1 已停止",engine.Error,ToolTipIcon.Warning);StopBridge();return;}
-    status.Text=testMode?"正在测试："+engine.CurrentTestChannel:"游戏 5.1 正在运行";details.Text=engine.SourceFormat+"\r\n"+engine.BassInfo+"\r\n"+(engine.LowLatencyEnabled?"FPS模式":"标准模式")+"；播放排队均值 "+engine.MeanPaddingMs.ToString("F1")+"ms；欠载 "+engine.Underruns+"；丢包 "+engine.DroppedBursts+"；跳过PCM "+engine.DroppedInputFrames+"帧";if(testMode && (DateTime.Now-testStarted).TotalSeconds>=18)StopBridge();
-   };timer.Start();SetButtons();
+    if(testMode && (DateTime.Now-testStarted).TotalSeconds>=18){StopBridge();return;}
+    if(!Visible || WindowState==FormWindowState.Minimized)return;
+    status.Text=testMode?"正在测试："+engine.CurrentTestChannel:"游戏 5.1 正在运行";details.Text=engine.SourceFormat+"\r\n"+engine.BassInfo+"\r\n"+(engine.LowLatencyEnabled?"FPS模式":"标准模式")+"；播放排队均值 "+engine.MeanPaddingMs.ToString("F1")+"ms；欠载 "+engine.Underruns+"；丢包 "+engine.DroppedBursts+"；跳过PCM "+engine.DroppedInputFrames+"帧";
+   };SetButtons();
   }
   protected override void SetVisibleCore(bool value){if(value && startHidden && !restoringWindow){if(!IsHandleCreated)CreateHandle();value=false;}base.SetVisibleCore(value);}
   protected override void Dispose(bool disposing){
@@ -226,7 +240,39 @@ namespace Hd820GameBridge {
   }
   void HandleStartupChanged(object sender,EventArgs e){
    try{AppLifetime.SetStartup(startupToggle.Checked);AddLog(startupToggle.Checked?"已启用登录后后台自动启动5.1。":"已关闭开机自启动。");}
-   catch(Exception error){AddLog("自启动设置失败："+error.Message);startupToggle.CheckedChanged-=HandleStartupChanged;try{startupToggle.Checked=AppLifetime.StartupEnabled;}catch{}finally{startupToggle.CheckedChanged+=HandleStartupChanged;}}
+   catch(Exception error){AddLog("自启动设置失败："+error.Message);}
+   RefreshStartupState();
+  }
+  void RefreshStartupState(){
+   startupToggle.CheckedChanged-=HandleStartupChanged;
+   try{startupToggle.Checked=AppLifetime.StartupEnabled;startupStateKnown=true;startupReadError=null;startupCaption.Text="开机自启动";}
+   catch(Exception error){startupStateKnown=false;startupCaption.Text="自启未知";if(startupReadError!=error.Message)AddLog("无法读取登录自启动："+error.Message+"。可先手动启动音频，重新打开面板后会重试读取。");startupReadError=error.Message;}
+   finally{startupToggle.Enabled=startupStateKnown && !busy && !exitRequested;startupToggle.CheckedChanged+=HandleStartupChanged;}
+  }
+  void StartDiagnostics(){
+   if(busy || diagnosticBusy || exitRequested || IsDisposed)return;
+   if(pendingDiagnosticReport!=null){string report=pendingDiagnosticReport;pendingDiagnosticReport=null;diagnose.Text="无声检查";ShowDiagnosticReport(report);return;}
+   diagnosticBusy=true;diagnose.Text="检查中…";SetButtons();
+   ThreadPool.QueueUserWorkItem(delegate{
+    string report;try{report=Preflight.Run(Program.Root);}catch(Exception error){report="无声检查未完成："+error.Message;}
+    try{if(!IsDisposed && !Disposing)BeginInvoke((Action<string>)CompleteDiagnostics,report);}catch(InvalidOperationException){}
+   });
+  }
+  void CompleteDiagnostics(string report){
+   if(IsDisposed || Disposing || exitRequested)return;
+   diagnosticBusy=false;pendingDiagnosticReport=report;diagnose.Text="查看检查结果";SetButtons();
+   AddLog("无声检查完成；未播放音频，未切换输出。");
+   if(Visible && !startHidden){pendingDiagnosticReport=null;diagnose.Text="无声检查";ShowDiagnosticReport(report);}
+  }
+  void ShowDiagnosticReport(string report){
+   if(IsDisposed || Disposing || exitRequested)return;
+   using(var dialog=new Form{Text="HD820 无声检查",StartPosition=FormStartPosition.CenterParent,Size=new Size(760,620),MinimumSize=new Size(440,300),Font=Font}){
+    var body=new TextBox{Multiline=true,ReadOnly=true,ScrollBars=ScrollBars.Both,WordWrap=false,Dock=DockStyle.Fill,Text=report};
+    var buttons=new FlowLayoutPanel{Dock=DockStyle.Bottom,Height=46,FlowDirection=FlowDirection.RightToLeft,Padding=new Padding(6)};
+    var close=new Button{Text="关闭",Width=84,DialogResult=DialogResult.OK};
+    var copy=new Button{Text="复制报告",Width=100};copy.Click+=delegate{try{Clipboard.SetText(report??"");}catch(Exception error){MessageBox.Show(dialog,"复制失败："+error.Message,"HD820 无声检查");}};
+    buttons.Controls.Add(close);buttons.Controls.Add(copy);dialog.Controls.Add(body);dialog.Controls.Add(buttons);dialog.AcceptButton=close;dialog.ShowDialog(this);
+   }
   }
   void ConfigureTray(){
    trayMenu.Items.Add("打开控制面板",null,delegate{ShowControlPanel();});trayMenu.Items.Add(new ToolStripSeparator());
@@ -259,11 +305,12 @@ namespace Hd820GameBridge {
     // Later tray round trips keep the same handle and only change visibility.
     WindowState=FormWindowState.Normal;if(!ShowInTaskbar)ShowInTaskbar=true;startHidden=false;
     Show();ShowWindow(Handle,9);WindowState=FormWindowState.Normal;
+    RefreshStartupState();nextTelemetry=DateTime.MinValue;
     meterTimer.Enabled=Visible;if(Visible)channelMeter.SetSnapshot(engine==null?null:engine.MeterSnapshot);
     Activate();BringToFront();
    }finally{restoringWindow=false;}
   }
-  void UpdateTray(){tray.Text=engine!=null?(engine.Running?"HD820 游戏5.1 · 正在运行":"HD820 游戏5.1 · 输出待释放"):busy?"HD820 游戏5.1 · 正在连接":autoStartPending?"HD820 游戏5.1 · 等待设备":"HD820 游戏5.1 · 已停止";}
+  void UpdateTray(){string text=exitRequested?"HD820 游戏5.1 · 正在退出":engine!=null?(engine.Running?"HD820 游戏5.1 · 正在运行":"HD820 游戏5.1 · 输出待释放"):busy?"HD820 游戏5.1 · 正在连接":autoStartPending?"HD820 游戏5.1 · 等待设备":"HD820 游戏5.1 · 已停止";if(tray.Text!=text)tray.Text=text;}
   void UpdatePill(){
    string text;Color dot,bg,fg;
    if(engine!=null){
@@ -277,6 +324,7 @@ namespace Hd820GameBridge {
   }
   void RequestExit(){if(IsDisposed || Disposing)return;lock(lifecycleGate){exitRequested=true;}startupCancellation.Set();autoStartPending=false;nextExitAttempt=DateTime.UtcNow.AddSeconds(2);Close();}
   void HandleClosing(object sender,FormClosingEventArgs e){
+   FlushPreferences();
    if(e.CloseReason==CloseReason.UserClosing && !exitRequested){e.Cancel=true;HideToTray();return;}
    lock(lifecycleGate){exitRequested=true;}startupCancellation.Set();autoStartPending=false;
    // Do not cancel Windows logoff/shutdown; the startup worker is barred from changing routing.
@@ -308,8 +356,16 @@ namespace Hd820GameBridge {
    nextAutoStart=DateTime.UtcNow.AddSeconds(5);
    try{RefreshDevices();if(source.SelectedItem==null || output.SelectedItem==null){status.Text="等待HD820和5.1入口就绪…";SetButtons();return;}StartBridge(false);}catch(Exception error){AddLog("自动启动等待："+error.Message);}
   }
-  void SavePreferences(){if(loadingPreferences)return;try{var input=source.SelectedItem as AudioEndpoint;var destination=output.SelectedItem as AudioEndpoint;if(input!=null)preferredSource=input.Id;if(destination!=null)preferredOutput=destination.Id;RuntimeConfig.AtomicWrite(Path.Combine(Program.Root,"bass-settings.txt"),String.Join(Environment.NewLine,new[]{bassToggle.Checked?"1":"0",bassLevel.Value.ToString(),latencyToggle.Checked?"1":"0",gain.Value.ToString(),preferredSource??"",preferredOutput??""})+Environment.NewLine);}catch{}}
-  void LoadPreferences(){loadingPreferences=true;try{var p=Path.Combine(Program.Root,"bass-settings.txt");if(!File.Exists(p))return;var lines=File.ReadAllLines(p);int value;if(lines.Length>=2 && Int32.TryParse(lines[1],out value)){bassLevel.Value=Math.Max(0,Math.Min(100,value));bassLabel.Text="补充低音："+bassLevel.Value+"%";}if(lines.Length>0)bassToggle.Checked=lines[0]=="1";if(lines.Length>=3)latencyToggle.Checked=lines[2]=="1";if(lines.Length>=4 && Int32.TryParse(lines[3],out value)){gain.Value=Math.Max(0,Math.Min(100,value));gainLabel.Text="游戏音量："+gain.Value+"%";}if(lines.Length>=6){preferredSource=lines[4];preferredOutput=lines[5];}}catch{}finally{loadingPreferences=false;}}
+  void SavePreferences(){if(loadingPreferences)return;var input=source.SelectedItem as AudioEndpoint;var destination=output.SelectedItem as AudioEndpoint;if(input!=null)preferredSource=input.Id;if(destination!=null)preferredOutput=destination.Id;preferencesDirty=true;preferencesWriteDue=DateTime.UtcNow.AddMilliseconds(500);}
+  void FlushPreferences(){
+   if(!preferencesDirty || loadingPreferences)return;
+   try{RuntimeConfig.SavePreferences(Program.Root,new[]{bassToggle.Checked?"1":"0",bassLevel.Value.ToString(),latencyToggle.Checked?"1":"0",gain.Value.ToString(),preferredSource??"",preferredOutput??""});preferencesDirty=false;if(preferencesWriteError!=null)AddLog("设置已成功保存。");preferencesWriteError=null;}
+   catch(Exception error){if(preferencesWriteError!=error.Message)AddLog("设置尚未保存，保留上次文件并稍后重试："+error.Message);preferencesWriteError=error.Message;preferencesWriteDue=DateTime.UtcNow.AddSeconds(5);}
+  }
+  void LoadPreferences(){loadingPreferences=true;try{string warning;var lines=RuntimeConfig.Preferences(Program.Root,out warning);if(warning!=null)AddLog(warning);int value;if(lines.Length>=2 && Int32.TryParse(lines[1],out value)){bassLevel.Value=value;bassLabel.Text="补充低音："+bassLevel.Value+"%";}if(lines.Length>0)bassToggle.Checked=lines[0]=="1";if(lines.Length>=3)latencyToggle.Checked=lines[2]=="1";if(lines.Length>=4 && Int32.TryParse(lines[3],out value)){gain.Value=value;gainLabel.Text="游戏音量："+gain.Value+"%";}if(lines.Length>=6){preferredSource=lines[4];preferredOutput=lines[5];}}
+   catch(Exception error){autoStartPending=false;preferredSource=preferredOutput="unreadable-saved-settings";errorState=true;status.Text="设置不可读，请重新选择设备";AddLog(error.Message);}
+   finally{loadingPreferences=false;}
+  }
   void SaveTelemetry(){
    var current=engine;if(current==null)return;
    try{Interlocked.Exchange(ref pendingTelemetryJson,current.MetricsJson());StartTelemetryWriter();}catch{}
@@ -338,6 +394,7 @@ namespace Hd820GameBridge {
   }
   void DrainLogs(){
    if(IsDisposed || Disposing || Thread.CurrentThread.ManagedThreadId!=uiThreadId)return;
+   if(queuedLogs.IsEmpty && Interlocked.CompareExchange(ref skippedLogCount,0,0)==0)return;
    var text=new StringBuilder();int skipped=Interlocked.Exchange(ref skippedLogCount,0);if(skipped>0)text.AppendLine("日志过密，已合并省略 "+skipped+" 条。");
    string line;while(queuedLogs.TryDequeue(out line)){Interlocked.Decrement(ref queuedLogCount);text.AppendLine(line);}
    if(text.Length==0)return;
@@ -360,18 +417,29 @@ namespace Hd820GameBridge {
    finally{loadingPreferences=wasLoading;}
    SetButtons();
   }
-  void SetButtons(){bool running=engine!=null;source.Enabled=output.Enabled=!busy && !running;start.Enabled=test.Enabled=!busy && !running && source.SelectedItem!=null && output.SelectedItem!=null;stop.Enabled=!busy && running;refresh.Enabled=restore.Enabled=!busy && !running;trayStart.Enabled=start.Enabled;trayStop.Enabled=stop.Enabled;UpdateTray();UpdatePill();}
+  void SetButtons(){bool running=engine!=null;source.Enabled=output.Enabled=!busy && !running;start.Enabled=test.Enabled=!busy && !diagnosticBusy && !running && !exitRequested && source.SelectedItem!=null && output.SelectedItem!=null;stop.Enabled=!busy && running;refresh.Enabled=restore.Enabled=!busy && !diagnosticBusy && !running;diagnose.Enabled=!busy && !diagnosticBusy && !exitRequested;startupToggle.Enabled=startupStateKnown && !busy && !exitRequested;trayStart.Enabled=start.Enabled;trayStop.Enabled=stop.Enabled;UpdateTray();UpdatePill();}
   void StartBridge(bool testing){
    if(busy || engine!=null || exitRequested)return;
    var input=(AudioEndpoint)source.SelectedItem;var destination=(AudioEndpoint)output.SelectedItem;if(input==null || destination==null)return;
+   string ffmpeg;byte[] silence;
+   try{ffmpeg=Program.Ffmpeg;silence=Program.Silence;BridgeEngine.ValidateBurst(silence);}
+   catch(Exception error){autoStartPending=false;errorState=true;status.Text="无法启动，请运行无声检查";AddLog(error.Message);SetButtons();return;}
    startupCancellation.Reset();busy=true;testMode=testing;errorState=false;SetButtons();status.Text="正在连接…";float level=gain.Value/100f;bool enableBass=bassToggle.Checked && !testing;float subLevel=bassLevel.Value/100f;bool lowLatency=latencyToggle.Checked;
    var worker=new Thread(delegate(){BridgeEngine created=null;try{
-    created=new BridgeEngine(input.Id,destination.Id,Program.Ffmpeg,Program.Silence,testing);lock(lifecycleGate){if(exitRequested)throw new OperationCanceledException("助手正在退出，已取消启动。");pendingEngine=created;}created.Gain=level;created.BassEnabled=enableBass;created.BassLevel=subLevel;created.LowLatencyEnabled=lowLatency;created.Log+=AddLog;created.Start(startupCancellation);AddLog(testing?"逐声道测试保留独立输出，不混入补充低音。":created.BassInfo);
+    created=new BridgeEngine(input.Id,destination.Id,ffmpeg,silence,testing);lock(lifecycleGate){if(exitRequested)throw new OperationCanceledException("助手正在退出，已取消启动。");pendingEngine=created;}created.Gain=level;created.BassEnabled=enableBass;created.BassLevel=subLevel;created.LowLatencyEnabled=lowLatency;created.Log+=AddLog;created.Start(startupCancellation);AddLog(testing?"逐声道测试保留独立输出，不混入补充低音。":created.BassInfo);
     lock(lifecycleGate){if(exitRequested)throw new OperationCanceledException("助手正在退出，已取消启动。");if(!testing){RoutingSnapshot.Save(input.Id);AudioPolicy.SetDefaultEndpoint(input.Id,AudioPolicy.Role.Console);AudioPolicy.SetDefaultEndpoint(input.Id,AudioPolicy.Role.Multimedia);AddLog("已将游戏和媒体默认入口切换到5.1虚拟设备；停止时恢复。");}}
     BeginInvoke((Action)delegate{FinishStarted(created,testing);});
    }catch(Exception e){BridgeEngine retained=null;if(created!=null)try{created.Dispose();}catch(Exception stopError){retained=created;AddLog(stopError.Message);}lock(lifecycleGate){if(Object.ReferenceEquals(pendingEngine,created))pendingEngine=retained;try{AddLog(RoutingSnapshot.Restore());}catch(Exception restoreError){AddLog("恢复失败："+restoreError.Message);}}AddLog(e.Message);try{BeginInvoke((Action)delegate{if(exitRequested){CleanupPendingEngine();busy=false;Close();return;}lock(lifecycleGate){engine=retained;pendingEngine=null;}if(retained!=null)autoStartPending=false;busy=false;errorState=true;status.Text=retained==null?"未启动："+e.Message:"驱动未释放，请退出助手后重开";SetButtons();});}catch(InvalidOperationException){}}
-   });worker.IsBackground=true;worker.SetApartmentState(ApartmentState.STA);startupWorker=worker;worker.Start();
+   });worker.IsBackground=true;worker.SetApartmentState(ApartmentState.STA);startupWorker=worker;
+   try{worker.Start();}catch(Exception error){busy=false;autoStartPending=false;errorState=true;status.Text="未能创建启动线程";AddLog(error.Message);SetButtons();}
   }
-  void StopBridge(){if(engine==null){try{AddLog(RoutingSnapshot.Restore());}catch(Exception e){AddLog(e.Message);}return;}try{engine.Dispose();SaveTelemetry();AddLog("结束统计：采集 "+engine.CapturedFrames+" PCM帧；编码 "+engine.EncodedBursts+" AC3包；输出 "+engine.RenderedBursts+"包；欠载 "+engine.Underruns+"；丢包 "+engine.DroppedBursts+"；采集间断 "+engine.Discontinuities+"；低音限幅 "+(engine.BassInfo));engine=null;errorState=false;status.Text="已停止，输出已释放";details.Text="补充低音可随时调整或关闭。\r\n逐声道测试会在18秒后自动停止。";}catch(Exception e){AddLog(e.Message);errorState=true;status.Text="驱动未释放，请关闭助手后重开";timer.Stop();}finally{try{AddLog(RoutingSnapshot.Restore());}catch(Exception e){AddLog("恢复失败："+e.Message);}SetButtons();}}
+  void StopBridge(){
+   if(stoppingBridge || (busy && !exitRequested))return;
+   if(engine==null){timer.Stop();try{AddLog(RoutingSnapshot.Restore());}catch(Exception e){AddLog(e.Message);}return;}
+   stoppingBridge=true;busy=true;timer.Stop();status.Text="正在停止并恢复输出…";SetButtons();
+   try{engine.Dispose();SaveTelemetry();AddLog("结束统计：采集 "+engine.CapturedFrames+" PCM帧；编码 "+engine.EncodedBursts+" AC3包；输出 "+engine.RenderedBursts+"包；欠载 "+engine.Underruns+"；丢包 "+engine.DroppedBursts+"；采集间断 "+engine.Discontinuities+"；低音限幅 "+engine.BassInfo);engine=null;errorState=false;if(!IsDisposed){status.Text="已停止，输出已释放";details.Text="补充低音可随时调整或关闭。\r\n逐声道测试会在18秒后自动停止。";}channelMeter.SetSnapshot(null);}
+   catch(Exception e){AddLog(e.Message);errorState=true;if(!IsDisposed)status.Text="输出尚未释放，可再次点停止重试";}
+   finally{try{AddLog(RoutingSnapshot.Restore());}catch(Exception e){AddLog("恢复失败："+e.Message);}busy=false;stoppingBridge=false;if(!IsDisposed && !Disposing)SetButtons();}
+  }
  }
 }

@@ -28,7 +28,18 @@ namespace Hd820GameBridge
         private readonly object _errorLock = new object();
         private readonly object _lifecycleLock = new object();
         private readonly object _stopLock = new object();
-        private readonly Queue<byte[]> _inputQueue = new Queue<byte[]>();
+        private struct InputPacket
+        {
+            internal byte[] Bytes;
+            internal int Count;
+            internal bool Pooled;
+        }
+        private const int MaximumPooledBuffers = 16;
+        private const int MaximumPooledBufferBytes = 65536;
+        private readonly Queue<InputPacket> _inputQueue = new Queue<InputPacket>();
+        private readonly List<byte[]> _inputPool = new List<byte[]>(MaximumPooledBuffers);
+        private long _pooledBuffersAllocated, _pooledBufferReuses;
+        private int _pooledBuffersInUse;
         private readonly StringBuilder _stderr = new StringBuilder();
         private readonly int _maxQueuedBytes;
         private Process _process;
@@ -83,6 +94,10 @@ namespace Hd820GameBridge
         public int MaxQueuedInputBytes { get { return Interlocked.CompareExchange(ref _maxQueuedInputBytes, 0, 0); } }
         public string LastError { get { lock (_errorLock) return _lastError; } }
         public string StderrText { get { lock (_errorLock) return _stderr.ToString(); } }
+        internal long PooledBuffersAllocated { get { lock (_queueLock) return _pooledBuffersAllocated; } }
+        internal long PooledBufferReuses { get { lock (_queueLock) return _pooledBufferReuses; } }
+        internal int PooledBuffersInUse { get { lock (_queueLock) return _pooledBuffersInUse; } }
+        internal int PooledBuffersRetained { get { lock (_queueLock) return _inputPool.Count; } }
 
         public void Start()
         {
@@ -213,6 +228,61 @@ namespace Hd820GameBridge
             return EnqueueOwnedBuffer(bytes);
         }
 
+        // Production capture uses reusable float workspaces. Copy only the valid
+        // samples into a bounded byte pool; the writer owns this rented buffer
+        // until Write finishes, including failure and overflow paths.
+        internal bool TryWritePooledSamples(float[] samples, int offset, int count)
+        {
+            if (samples == null) throw new ArgumentNullException("samples");
+            if (offset < 0 || count < 0 || offset > samples.Length - count || count % Channels != 0)
+                throw new ArgumentOutOfRangeException("count");
+            if (count == 0) return _running && !_inputComplete && !_stopping;
+            if (!_running || _inputComplete || _stopping) return false;
+            int byteCount = checked(count * sizeof(float));
+            InputPacket packet = RentInputPacket(byteCount);
+            try { Buffer.BlockCopy(samples, checked(offset * sizeof(float)), packet.Bytes, 0, byteCount); }
+            catch { lock (_queueLock) ReturnInputPacket(packet); throw; }
+            return EnqueueInputPacket(packet);
+        }
+
+        private InputPacket RentInputPacket(int count)
+        {
+            if (count > MaximumPooledBufferBytes) return new InputPacket { Bytes = new byte[count], Count = count };
+            int capacity = checked((count + 4095) / 4096 * 4096);
+            lock (_queueLock)
+            {
+                int best = -1;
+                for (int i = 0; i < _inputPool.Count; i++)
+                    if (_inputPool[i].Length >= capacity && (best < 0 || _inputPool[i].Length < _inputPool[best].Length)) best = i;
+                byte[] bytes;
+                if (best >= 0) { bytes = _inputPool[best]; _inputPool.RemoveAt(best); _pooledBufferReuses++; }
+                else { bytes = new byte[capacity]; _pooledBuffersAllocated++; }
+                _pooledBuffersInUse++;
+                return new InputPacket { Bytes = bytes, Count = count, Pooled = true };
+            }
+        }
+
+        // Called only while holding _queueLock. Never return an in-flight write.
+        private void ReturnInputPacket(InputPacket packet)
+        {
+            if (!packet.Pooled) return;
+            _pooledBuffersInUse--;
+            if (_inputPool.Count < MaximumPooledBuffers) _inputPool.Add(packet.Bytes);
+        }
+
+        internal byte[][] SnapshotQueuedInput()
+        {
+            lock (_queueLock)
+            {
+                var result = new byte[_inputQueue.Count][]; int at = 0;
+                foreach (InputPacket packet in _inputQueue)
+                {
+                    var bytes = new byte[packet.Count]; Buffer.BlockCopy(packet.Bytes, 0, bytes, 0, packet.Count); result[at++] = bytes;
+                }
+                return result;
+            }
+        }
+
         public static void ValidateBurst(byte[] burst)
         {
             if (burst == null || burst.Length != BurstBytes || burst[0] != 0x72 || burst[1] != 0xF8 ||
@@ -236,33 +306,40 @@ namespace Hd820GameBridge
 
         private bool EnqueueOwnedBuffer(byte[] copy)
         {
+            return EnqueueInputPacket(new InputPacket { Bytes = copy, Count = copy.Length });
+        }
+
+        private bool EnqueueInputPacket(InputPacket packet)
+        {
             lock (_queueLock)
             {
-                if (!_running || _inputComplete || _stopping) return false;
-                if (copy.Length == 0) return true;
+                if (!_running || _inputComplete || _stopping) { ReturnInputPacket(packet); return false; }
+                if (packet.Count == 0) { ReturnInputPacket(packet); return true; }
                 if (DropOldInputOnOverflow)
                 {
-                    if (copy.Length > _maxQueuedBytes)
+                    if (packet.Count > _maxQueuedBytes)
                     {
                         // All lengths and offsets are complete 24-byte PCM frames.
                         // Retain the newest part of a large packet, never shift
                         // the six-channel interleave by dropping arbitrary bytes.
                         int retainedBytes = _maxQueuedBytes - _maxQueuedBytes % BytesPerInputFrame;
                         var newest = new byte[retainedBytes];
-                        Buffer.BlockCopy(copy, copy.Length - retainedBytes, newest, 0, retainedBytes);
-                        Interlocked.Add(ref _droppedInputFrames, (copy.Length - retainedBytes) / BytesPerInputFrame);
-                        copy = newest;
+                        Buffer.BlockCopy(packet.Bytes, packet.Count - retainedBytes, newest, 0, retainedBytes);
+                        Interlocked.Add(ref _droppedInputFrames, (packet.Count - retainedBytes) / BytesPerInputFrame);
+                        ReturnInputPacket(packet);
+                        packet = new InputPacket { Bytes = newest, Count = retainedBytes };
                     }
-                    while (_queuedBytes > _maxQueuedBytes - copy.Length && _inputQueue.Count > 0)
+                    while (_queuedBytes > _maxQueuedBytes - packet.Count && _inputQueue.Count > 0)
                     {
-                        byte[] discarded = _inputQueue.Dequeue();
-                        _queuedBytes -= discarded.Length;
-                        Interlocked.Add(ref _droppedInputFrames, discarded.Length / BytesPerInputFrame);
+                        InputPacket discarded = _inputQueue.Dequeue();
+                        _queuedBytes -= discarded.Count;
+                        Interlocked.Add(ref _droppedInputFrames, discarded.Count / BytesPerInputFrame);
+                        ReturnInputPacket(discarded);
                     }
                 }
-                if (_queuedBytes > _maxQueuedBytes - copy.Length) return false;
-                _inputQueue.Enqueue(copy);
-                _queuedBytes += copy.Length;
+                if (_queuedBytes > _maxQueuedBytes - packet.Count) { ReturnInputPacket(packet); return false; }
+                _inputQueue.Enqueue(packet);
+                _queuedBytes += packet.Count;
                 if (_queuedBytes > _maxQueuedInputBytes)
                     Interlocked.Exchange(ref _maxQueuedInputBytes, _queuedBytes);
                 Monitor.PulseAll(_queueLock);
@@ -286,20 +363,27 @@ namespace Hd820GameBridge
                 Stream input = _process.StandardInput.BaseStream;
                 while (true)
                 {
-                    byte[] pcm;
+                    InputPacket pcm;
                     lock (_queueLock)
                     {
                         while (_inputQueue.Count == 0 && !_inputComplete)
                             Monitor.Wait(_queueLock);
                         if (_inputQueue.Count == 0 && _inputComplete) break;
                         pcm = _inputQueue.Dequeue();
-                        _queuedBytes -= pcm.Length;
-                        Interlocked.Exchange(ref _inFlightInputFrames, pcm.Length / BytesPerInputFrame);
+                        _queuedBytes -= pcm.Count;
+                        Interlocked.Exchange(ref _inFlightInputFrames, pcm.Count / BytesPerInputFrame);
                     }
-                    input.Write(pcm, 0, pcm.Length);
-                    input.Flush();
-                    Interlocked.Add(ref _inputSamplesWritten, pcm.Length / sizeof(float));
-                    Interlocked.Exchange(ref _inFlightInputFrames, 0);
+                    try
+                    {
+                        input.Write(pcm.Bytes, 0, pcm.Count);
+                        input.Flush();
+                        Interlocked.Add(ref _inputSamplesWritten, pcm.Count / sizeof(float));
+                    }
+                    finally
+                    {
+                        lock (_queueLock) ReturnInputPacket(pcm);
+                        Interlocked.Exchange(ref _inFlightInputFrames, 0);
+                    }
                 }
             }
             catch (Exception ex)
@@ -309,6 +393,7 @@ namespace Hd820GameBridge
             finally
             {
                 Interlocked.Exchange(ref _inFlightInputFrames, 0);
+                lock (_queueLock) { while (_inputQueue.Count > 0) ReturnInputPacket(_inputQueue.Dequeue()); _queuedBytes = 0; }
                 try { _process.StandardInput.BaseStream.Close(); } catch { }
             }
         }
@@ -357,13 +442,16 @@ namespace Hd820GameBridge
         {
             try
             {
-                string line;
-                while ((line = _process.StandardError.ReadLine()) != null)
+                // ReadLine can accumulate an unbounded line inside StreamReader
+                // before our cap is applied. A failed or unexpected executable
+                // must not grow the audio process indefinitely without newlines.
+                var characters = new char[1024]; int count;
+                while ((count = _process.StandardError.Read(characters, 0, characters.Length)) > 0)
                 {
                     lock (_errorLock)
                     {
+                        _stderr.Append(characters, 0, count);
                         if (_stderr.Length > 65536) _stderr.Remove(0, _stderr.Length - 32768);
-                        _stderr.AppendLine(line);
                     }
                 }
             }
@@ -415,7 +503,11 @@ namespace Hd820GameBridge
                 if (_disposed) return;
                 _stopping = true;
                 CompleteInput();
-                if (_process == null) return;
+                if (_process == null)
+                {
+                    lock (_queueLock) { while (_inputQueue.Count > 0) ReturnInputPacket(_inputQueue.Dequeue()); _queuedBytes = 0; }
+                    return;
+                }
             }
             bool processExited = false;
             try
@@ -440,7 +532,7 @@ namespace Hd820GameBridge
                     ", input=" + writerStopped + ", output=" + readerStopped + ", diagnostic=" + stderrStopped + ".");
             }
             _running = false;
-            lock (_queueLock) { _inputQueue.Clear(); _queuedBytes = 0; }
+            lock (_queueLock) { while (_inputQueue.Count > 0) ReturnInputPacket(_inputQueue.Dequeue()); _queuedBytes = 0; }
         }
 
         private static bool JoinWorker(Thread worker, int milliseconds)
@@ -459,6 +551,7 @@ namespace Hd820GameBridge
                 lock (_lifecycleLock)
                 {
                     if (_process != null) _process.Dispose();
+                    lock (_queueLock) _inputPool.Clear();
                     _disposed = true;
                 }
             }

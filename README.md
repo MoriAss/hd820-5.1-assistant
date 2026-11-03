@@ -2,9 +2,11 @@
 
 把 Windows 游戏、音乐和视频中的多声道声音送到 HD820，再通过六根 RCA 线连接功放和 5.1 音箱。提供六声道实时电平、低音补充、FPS 模式、登录自启和托盘后台运行。
 
-**Windows 10 / 11 x64 · v3.3.2 · MIT**
+**Windows 10 / 11 x64 · v3.4.0 · MIT**
 
-[下载程序包](https://github.com/MoriAss/hd820-5.1-assistant/releases/download/v3.3.2/hd820-5.1-assistant-v3.3.2-windows-x64.zip) · [下载页与更新说明](https://github.com/MoriAss/hd820-5.1-assistant/releases/tag/v3.3.2) · [遇到问题](#遇到问题先查这里)
+[下载程序包](https://github.com/MoriAss/hd820-5.1-assistant/releases/download/v3.4.0/hd820-5.1-assistant-v3.4.0-windows-x64.zip) · [下载页与更新说明](https://github.com/MoriAss/hd820-5.1-assistant/releases/tag/v3.4.0) · [遇到问题](#遇到问题先查这里)
+
+v3.4.0 增加无声检查、配置备份与恢复，并减少音频处理的临时内存分配；[查看优化记录](docs/OPTIMIZATION-3.4.0.md)。
 
 第一次使用，按下面顺序做。程序包已经编译好，不需要 Python、Visual Studio 或自己编译。**下载名字带 `windows-x64.zip` 的文件**；下载页自动生成的 `Source code` 是源码，不是可直接运行的程序。
 
@@ -42,7 +44,7 @@ HD820 按对应型号手册切到 **USB-PC 电脑输入**和 **5.1 输出**；US
 
 | 软件 | 下载入口 | 选哪个、做什么 |
 | --- | --- | --- |
-| 本助手 | [直接下载 v3.3.2 程序包](https://github.com/MoriAss/hd820-5.1-assistant/releases/download/v3.3.2/hd820-5.1-assistant-v3.3.2-windows-x64.zip) | 全部解压到固定文件夹，例如 `D:\HD820助手`。以后登录自启会用这个位置。 |
+| 本助手 | [直接下载 v3.4.0 程序包](https://github.com/MoriAss/hd820-5.1-assistant/releases/download/v3.4.0/hd820-5.1-assistant-v3.4.0-windows-x64.zip) | 全部解压到固定文件夹，例如 `D:\HD820助手`。以后登录自启会用这个位置。 |
 | Voicemeeter | [VB-Audio 官方下载页](https://vb-audio.com/Voicemeeter/) | 下载 **Voicemeeter 标准版 / Basic**，提供多声道虚拟入口。不要误下成单独的 VB-CABLE。已有可用的多声道 VAIO 入口可以先沿用。 |
 | FFmpeg | [下载 essentials ZIP](https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip) · [Gyan 下载页](https://www.gyan.dev/ffmpeg/builds/) · [FFmpeg 官方入口](https://ffmpeg.org/download.html) | 选 `ffmpeg-release-essentials.zip`，解压后找 `bin\ffmpeg.exe`。Gyan提供Windows构建，FFmpeg负责实时编码AC3。 |
 | .NET Framework | [微软 .NET Framework 4.8.1 页面](https://dotnet.microsoft.com/en-us/download/dotnet-framework/net481) | Windows 10/11通常已有兼容运行库，**先不用装**。提示缺少时查看系统要求，选 **Runtime**，不需要Developer Pack，也不是.NET 8/9。 |
@@ -104,9 +106,9 @@ D:\HD820助手\
 
 双击 `HD820游戏5.1助手.exe`，先暂停游戏或音乐，把功放音量调低。
 
-<img src="docs/assets/assistant-panel.png" alt="v3.3.2界面：上方选择游戏入口和HD820输出，中间调音量并看六声道电平，下方启动或测试" width="860">
+<img src="docs/assets/assistant-panel.png" alt="v3.4.0界面：上方选择游戏入口和HD820输出，中间调音量并看六声道电平，下方启动或测试" width="860">
 
-*界面示意由v3.3.2实际控件渲染，设备项及电平是演示数据，没有播放测试音。图中音量与开关不是你的必选值。*
+*界面示意由v3.4.0实际控件渲染，设备项及电平是演示数据，没有播放测试音。图中音量与开关不是你的必选值。*
 
 | 界面位置 | 怎么选 |
 | --- | --- |
@@ -121,6 +123,10 @@ D:\HD820助手\
 助手发送的是AC3编码载体，需要兼容解码器处理。多个USB音频设备名称相似时，要先核实对应硬件，程序不会替你猜选。
 
 设备没出现时，检查USB、驱动和第4步，再点“刷新设备”。运行时设备选择会锁定，需先“停止并恢复输出”。
+
+第一次使用时，请手动选定HD820数字输出。即使列表里只有一个USB数字设备，程序也不会自动认定它就是HD820。
+
+找不到设备或启动失败时，点 **“无声检查”**。它会检查FFmpeg能否运行、是否带AC3编码和SPDIF封装、静音文件是否完整、虚拟入口是否为5.1/48kHz，以及登录自启状态。检查不播放声音，不更改默认设备；报告可以复制，省略个人路径和设备ID。检查通过后仍要完成下一节的逐声道实听。
 
 ## 7. 先听六个声道，再打开游戏
 
@@ -148,11 +154,13 @@ D:\HD820助手\
 - 真正退出：右键托盘图标 →“退出并恢复输出”。暂时停用则点“停止并恢复输出”。
 - 自启开启后不要直接移动程序目录。换位置前先关闭自启并退出，移动后重新打开和启用自启。
 - 最小化保留任务栏，关闭窗口退托盘，两者不同。
+- 设置会在短暂停止操作后保存；正常退出会立即保存。配置损坏时尝试读取上一份备份，并在日志中提示，不要忽略保存失败提示。
 
 ## 遇到问题先查这里
 
 | 现象 | 先检查什么 |
 | --- | --- |
+| 不知道问题出在哪 | 先点“无声检查”，按报告中的“需处理”逐项检查。 |
 | 找不到FFmpeg | `ffmpeg.exe`是否和助手EXE在一起？是否有指向旧位置的`ffmpeg-path.txt`？ |
 | “游戏入口”为空 | Voicemeeter安装后是否重启？选的是播放端Input吗？是否5.1、48000Hz？ |
 | “HD820输出”为空 | 检查USB、供电、厂商驱动和Windows数字输出。不要用其他USB声卡代替。 |
@@ -167,7 +175,7 @@ D:\HD820助手\
 
 ## 支持到什么程度
 
-已验证HD820 → 六路模拟RCA → 天龙AVR-1507 → 5.1音箱这条链路；v3.3.2通过13组离线回归及六路编解码检查。其他设备、固件和应用需要分别验证。
+已验证HD820 → 六路模拟RCA → 天龙AVR-1507 → 5.1音箱这条链路；本项目提供离线回归及六路编解码检查，具体结果见版本验证摘要。其他设备、固件和应用需要分别验证。
 
 输出为普通 **5.1 AC3，640kbps，有损编码**。AC3每帧在48kHz下为32ms，采集、排队、USB和硬件解码还会增加延迟。FPS模式不等于零延迟；本项目没有承诺消除所有卡顿，也没有完成端到端延迟测量。
 
@@ -190,7 +198,7 @@ python -m pip install -r .\tests\requirements.txt
 python .\tests\run_tests.py --ffmpeg C:\tools\ffmpeg\bin\ffmpeg.exe
 ```
 
-测试不打开物理音频输出。命令行参数见[开发者说明](docs/DEVELOPMENT.md)，另有[架构说明](docs/ARCHITECTURE.md)、[调试记录](docs/DEBUG-20261103.md)和[验证摘要](docs/VALIDATION-3.3.2.json)。
+测试不打开物理音频输出。命令行参数见[开发者说明](docs/DEVELOPMENT.md)，另有[架构说明](docs/ARCHITECTURE.md)、[调试记录](docs/DEBUG-20261103.md)和[验证摘要](docs/VALIDATION-3.4.0.json)。
 
 ## 开源协议
 

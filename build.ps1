@@ -10,7 +10,7 @@ if(-not (Test-Path -LiteralPath $compilerPath)){throw 'Windows x64 with .NET Fra
 $running=@(Get-CimInstance Win32_Process -Filter "Name='HD820游戏5.1助手.exe'" -ErrorAction SilentlyContinue | Where-Object {$_.ExecutablePath -eq (Join-Path $OutputRoot 'HD820游戏5.1助手.exe')})
 if($running.Count -gt 0){throw 'The destination executable is running. Build to a new folder.'}
 $sources=@('CoreAudio.cs','BassManager.cs','AudioScheduler.cs','PcmClockSynchronizer.cs','ChannelMeter.cs','ChannelMeterControl.cs','ModernUi.cs','BridgeEngine.cs','VirtualStimulus.cs','Program.cs','AppLifetime.cs','encoder\RealtimeAc3Encoder.cs','reviewer\AudioPolicy.cs') | ForEach-Object {Join-Path $sourceRoot $_}
-foreach($optional in @('RuntimeConfig.cs','AssemblyInfo.cs')){if(Test-Path -LiteralPath (Join-Path $sourceRoot $optional)){$sources+=Join-Path $sourceRoot $optional}}
+foreach($optional in @('RuntimeConfig.cs','AssemblyInfo.cs','Preflight.cs')){if(Test-Path -LiteralPath (Join-Path $sourceRoot $optional)){$sources+=Join-Path $sourceRoot $optional}}
 $iconPath=Join-Path $sourceRoot 'icon.ico'
 & $compilerPath /nologo /target:winexe /platform:x64 /optimize+ /codepage:65001 /langversion:5 /win32icon:$iconPath /r:System.dll /r:System.Core.dll /r:Microsoft.CSharp.dll /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:System.Xml.dll /r:System.Web.Extensions.dll ('/out:'+(Join-Path $OutputRoot 'HD820游戏5.1助手.exe')) $sources
 if($LASTEXITCODE -ne 0){throw 'C# compilation failed'}

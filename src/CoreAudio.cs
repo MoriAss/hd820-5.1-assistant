@@ -44,11 +44,13 @@ namespace Hd820GameBridge {
   [PreserveSig] int ReleaseBuffer(uint frames,uint flags);
  }
  internal sealed class AudioFormat {
+  internal static readonly Guid FloatSubformat=new Guid("00000003-0000-0010-8000-00aa00389b71");
+  internal static readonly Guid PcmSubformat=new Guid("00000001-0000-0010-8000-00aa00389b71");
   public int Tag,Channels,Rate,Bits,BlockAlign,ValidBits;
   public uint Mask;
   public Guid Subformat;
   public byte[] Bytes;
-  public bool Floating { get { return Tag==3 || (Tag==65534 && Subformat==new Guid("00000003-0000-0010-8000-00aa00389b71")); } }
+  public bool Floating { get { return Tag==3 || (Tag==65534 && Subformat==FloatSubformat); } }
   public static AudioFormat Read(IntPtr p) {
    if(p==IntPtr.Zero)throw new InvalidOperationException("音频驱动未返回有效格式。");
    int size=18+(ushort)Marshal.ReadInt16(p,16);
@@ -105,40 +107,39 @@ namespace Hd820GameBridge {
   // Windows channel order follows ascending speaker mask bits. AC3 input order here is FL FR FC LFE BL BR.
   public static bool IsSupportedLayout(AudioFormat format){return format!=null && ((format.Channels==6 && (format.Mask==0x3F || format.Mask==0x60F)) || (format.Channels==8 && format.Mask==0x63F));}
   public static float[] ConvertPacket(byte[] bytes,int frames,AudioFormat format,float gain){
+   if(frames<0)throw new ArgumentOutOfRangeException("frames");
+   var output=new float[checked(frames*6)];ConvertPacket(bytes,frames,format,gain,output);return output;
+  }
+  internal static int ConvertPacket(byte[] bytes,int frames,AudioFormat format,float gain,float[] output){
    if(bytes==null)throw new ArgumentNullException("bytes");
    if(format==null)throw new ArgumentNullException("format");
    if(frames<0)throw new ArgumentOutOfRangeException("frames");
+   int sampleCount=checked(frames*6);
+   if(output==null || output.Length<sampleCount)throw new ArgumentException("输出缓冲不足以包含完整六声道帧。","output");
    if(format.Channels<6 || format.Channels>8 || format.Rate!=48000)throw new InvalidOperationException("游戏入口需要48kHz的5.1或7.1格式。");
-   int maskCount=0;for(int b=0;b<32;b++)if((format.Mask&(1u<<b))!=0)maskCount++;
-   if(maskCount!=format.Channels)throw new InvalidOperationException("声道掩码数量与PCM通道数不匹配。");
    if(!IsSupportedLayout(format))throw new InvalidOperationException("仅支持标准5.1（0x3F/0x60F）或7.1（0x63F）声道布局；不对6.1或宽声场布局静默丢弃声道。");
-   int[] bits=new int[format.Channels];int index=0;
-   for(int b=0;b<32 && index<bits.Length;b++)if((format.Mask&(1u<<b))!=0)bits[index++]=b;
-   if(index!=format.Channels)throw new InvalidOperationException("入口未提供可验证的声道布局。");
-   if(Array.IndexOf(bits,0)<0 || Array.IndexOf(bits,1)<0 || Array.IndexOf(bits,2)<0 || Array.IndexOf(bits,3)<0)throw new InvalidOperationException("声道布局缺少前置/中置/低音。");
-   int[] target=new int[]{0,1,2,3,4,5};int size=format.Bits/8;
+   // The three accepted masks have the same first six positions. In 7.1 the
+   // side pair is at indices 6/7; combine it with the back pair at 4/5.
+   // Validate once per packet instead of rebuilding four channel maps and
+   // reparsing the floating-point GUID for every sample on the audio thread.
+   int size=format.Bits/8;bool floating=format.Floating;
    if(format.Bits!=16 && format.Bits!=24 && format.Bits!=32)throw new InvalidOperationException("不支持此PCM位深。");
    if(format.BlockAlign!=format.Channels*size)throw new InvalidOperationException("不支持此PCM对齐方式。");
-   if(!format.Floating && format.Tag!=1 && (format.Tag!=65534 || format.Subformat!=new Guid("00000001-0000-0010-8000-00aa00389b71")))throw new InvalidOperationException("不支持此游戏入口编码。");
-   if(format.Floating && format.Bits!=32)throw new InvalidOperationException("仅支持32bit浮点。");
+   if(!floating && format.Tag!=1 && (format.Tag!=65534 || format.Subformat!=AudioFormat.PcmSubformat))throw new InvalidOperationException("不支持此游戏入口编码。");
+   if(floating && format.Bits!=32)throw new InvalidOperationException("仅支持32bit浮点。");
    if(bytes.Length<checked(frames*format.BlockAlign))throw new ArgumentException("PCM数据不足以包含声明的完整帧。","bytes");
-   float[] output=new float[checked(frames*6)];
-   int[] primary=new int[6],sideChannels=new int[]{-1,-1,-1,-1,-1,-1};
-   for(int t=0;t<6;t++)primary[t]=Array.IndexOf(bits,target[t]);
-   sideChannels[4]=Array.IndexOf(bits,9);sideChannels[5]=Array.IndexOf(bits,10);
-   if((primary[4]<0 && sideChannels[4]<0) || (primary[5]<0 && sideChannels[5]<0))throw new InvalidOperationException("入口缺少环绕声道。");
    for(int f=0;f<frames;f++)for(int t=0;t<6;t++){
-    int ch=primary[t];double value=ch<0?0:ReadSample(bytes,f*format.BlockAlign+ch*size,format);
+    int at=f*format.BlockAlign;double value=ReadSample(bytes,at+t*size,format.Bits,floating);
     if(Double.IsNaN(value)||Double.IsInfinity(value))value=0;
-    int side=sideChannels[t];if(side>=0){double sideValue=ReadSample(bytes,f*format.BlockAlign+side*size,format);if(Double.IsNaN(sideValue)||Double.IsInfinity(sideValue))sideValue=0;value=ch<0?sideValue:(value+sideValue)*0.5;}
+    if(format.Channels==8 && t>=4){double sideValue=ReadSample(bytes,at+(t+2)*size,format.Bits,floating);if(Double.IsNaN(sideValue)||Double.IsInfinity(sideValue))sideValue=0;value=(value+sideValue)*0.5;}
     value*=gain;if(Double.IsNaN(value)||Double.IsInfinity(value))value=0;output[f*6+t]=(float)Math.Max(-1.0,Math.Min(1.0,value));
-   }return output;
+   }return sampleCount;
   }
-  static float ReadSample(byte[] bytes,int at,AudioFormat f){
-   if(f.Floating)return BitConverter.ToSingle(bytes,at);
-   if(f.Bits==16)return BitConverter.ToInt16(bytes,at)/32768f;
-   if(f.Bits==24){int value=bytes[at]|(bytes[at+1]<<8)|(bytes[at+2]<<16);if((value&0x800000)!=0)value|=unchecked((int)0xFF000000);return value/8388608f;}
-   if(f.Bits==32)return BitConverter.ToInt32(bytes,at)/2147483648f;
+  static float ReadSample(byte[] bytes,int at,int bits,bool floating){
+   if(floating)return BitConverter.ToSingle(bytes,at);
+   if(bits==16)return BitConverter.ToInt16(bytes,at)/32768f;
+   if(bits==24){int value=bytes[at]|(bytes[at+1]<<8)|(bytes[at+2]<<16);if((value&0x800000)!=0)value|=unchecked((int)0xFF000000);return value/8388608f;}
+   if(bits==32)return BitConverter.ToInt32(bytes,at)/2147483648f;
    throw new InvalidOperationException("不支持此PCM位深。");
   }
  }

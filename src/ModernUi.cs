@@ -80,6 +80,7 @@ namespace Hd820GameBridge {
    if(Enabled && (e.KeyCode==Keys.Enter||e.KeyCode==Keys.Space)){OnClick(EventArgs.Empty);e.Handled=true;e.SuppressKeyPress=true;return;}
    base.OnKeyDown(e);
   }
+  protected override bool IsInputKey(Keys keyData){Keys key=keyData&Keys.KeyCode;return key==Keys.Enter || key==Keys.Space || base.IsInputKey(keyData);}
   protected override void OnPaint(PaintEventArgs e) {
    var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;
    Color parent=UiTheme.ParentColor(this);
@@ -216,7 +217,7 @@ namespace Hd820GameBridge {
   protected override void OnMouseCaptureChanged(EventArgs e){if(!Capture && drag){drag=false;Invalidate();}base.OnMouseCaptureChanged(e);}
   protected override void OnEnabledChanged(EventArgs e){if(!Enabled){drag=false;Capture=false;}Invalidate();base.OnEnabledChanged(e);}
   protected override void OnMouseWheel(MouseEventArgs e) {
-   if(!Enabled||drag)return;
+   if(!Enabled||drag||e.Delta==0)return;
    Value=value+(e.Delta>0?1:-1);RaiseScroll();
    base.OnMouseWheel(e);
   }
@@ -228,6 +229,7 @@ namespace Hd820GameBridge {
    if(e.KeyCode==Keys.End){Value=max;RaiseScroll();e.Handled=true;return;}
    base.OnKeyDown(e);
   }
+  protected override bool IsInputKey(Keys keyData){Keys key=keyData&Keys.KeyCode;return key==Keys.Left || key==Keys.Right || key==Keys.Home || key==Keys.End || base.IsInputKey(keyData);}
   void SetFromPoint(Point p) {
    var t=TrackBounds;
    float ratio=(p.X-t.X)/(float)Math.Max(1,t.Width);
@@ -388,6 +390,7 @@ namespace Hd820GameBridge {
    base.OnMouseDown(e);
   }
   protected override void OnKeyDown(KeyEventArgs e) {
+   if(!Enabled)return;
    if(e.KeyCode==Keys.Enter||e.KeyCode==Keys.Space||(e.Alt&&(e.KeyCode==Keys.Down||e.KeyCode==Keys.Up))||e.KeyCode==Keys.F4){OpenPopup();e.Handled=true;return;}
    if(e.KeyCode==Keys.Up||e.KeyCode==Keys.Down){
     if(items.Count>0){
@@ -399,6 +402,7 @@ namespace Hd820GameBridge {
    }
    base.OnKeyDown(e);
   }
+  protected override bool IsInputKey(Keys keyData){Keys key=keyData&Keys.KeyCode;return key==Keys.Up || key==Keys.Down || key==Keys.Enter || key==Keys.F4 || base.IsInputKey(keyData);}
   protected override void OnEnabledChanged(EventArgs e) { base.OnEnabledChanged(e);Invalidate(); }
   protected override void OnPaint(PaintEventArgs e) {
    var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;
@@ -470,6 +474,7 @@ namespace Hd820GameBridge {
    Font=new Font("Microsoft YaHei UI",9f);
   }
   internal void SetState(string t,Color dotColor,Color backColor,Color textColor) {
+   if(text==(t??"") && dot==dotColor && bg==backColor && fg==textColor)return;
    text=t==null?"":t;dot=dotColor;bg=backColor;fg=textColor;
    var size=TextRenderer.MeasureText(text,Font);
    Width=size.Width+46;if(Width<92)Width=92;

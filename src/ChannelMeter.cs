@@ -22,10 +22,14 @@ namespace Hd820GameBridge {
   int frames;
   volatile ChannelMeterSnapshot snapshot;
   public ChannelMeterSnapshot Snapshot {get{return snapshot;}}
-  public void Process(float[] samples){Process(samples,0);}
+  public void Process(float[] samples){Process(samples,samples==null?0:samples.Length,0L);}
+  public void Process(float[] samples,int sampleCount){Process(samples,sampleCount,0L);}
   internal void Process(float[] samples,long fixedUtcTicks){
-   if(samples==null || samples.Length%Channels!=0)throw new ArgumentException("电平数据必须为六声道交错PCM。");
-   for(int at=0;at<samples.Length;at+=Channels){
+   Process(samples,samples==null?0:samples.Length,fixedUtcTicks);
+  }
+  internal void Process(float[] samples,int sampleCount,long fixedUtcTicks){
+   if(samples==null || sampleCount<0 || sampleCount>samples.Length || sampleCount%Channels!=0)throw new ArgumentException("电平数据必须为六声道交错PCM。");
+   for(int at=0;at<sampleCount;at+=Channels){
     for(int ch=0;ch<Channels;ch++){
      double value=samples[at+ch];if(Double.IsNaN(value)||Double.IsInfinity(value))value=0;
      sums[ch]+=value*value;peaks[ch]=Math.Max(peaks[ch],Math.Abs(value));

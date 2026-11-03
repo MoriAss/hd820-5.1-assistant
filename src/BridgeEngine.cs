@@ -60,7 +60,9 @@ namespace Hd820GameBridge {
   public string BassInfo {get{return BassEnabled?"补充低音：80Hz / "+(BassLevel*100).ToString("F0")+"%；低音输出 "+PeakDb(bass.LastOutputLfePeak)+"；限幅 "+bass.ClippedSamples:"补充低音已关闭，保留游戏原始低音轨";}}
   static string PeakDb(double value){return value<=0?"暂无低频信号":(20*Math.Log10(value)).ToString("F1")+"dBFS";}
   public long DroppedInputFrames {get{var current=encoder;return current==null?finalDroppedInputFrames:current.DroppedInputFrames;}}
-  public string MetricsJson(){var current=encoder;double uptime=lifetime.Elapsed.TotalMilliseconds;long utc=DateTime.UtcNow.Ticks;return new JavaScriptSerializer().Serialize(new{UpdatedAt=DateTime.Now.ToString("o"),Running=Running,Error=Error,SourceFormat=SourceFormat,OutputInfo=OutputInfo,Gain=Gain,BassEnabled=BassEnabled,BassLevel=BassLevel,AddedBassPeak=bass.AddedBassPeak,OutputLfePeak=bass.OutputLfePeak,LastAddedBassPeak=bass.LastAddedBassPeak,LastOutputLfePeak=bass.LastOutputLfePeak,BassMixedFrames=bass.MixedFrames,BassClippedSamples=bass.ClippedSamples,LowLatencyEnabled=LowLatencyEnabled,OutputCapacityFrames=OutputCapacityFrames,CaptureCapacityFrames=CaptureCapacityFrames,MaxCapturePacketFrames=MaxCapturePacketFrames,OutputScheduler=OutputScheduler,CaptureScheduler=CaptureScheduler,ObservedMeanPaddingMs=MeanPaddingMs,ObservedMinPaddingMs=PaddingSamples==0?0:PaddingMinFrames/48.0,ObservedMaxPaddingMs=PaddingMaxFrames/48.0,PaddingSamples=PaddingSamples,OutputEmptyEvents=OutputEmptyEvents,EncoderInputQueueMs=EncoderInputQueueMs,EncoderMaxInputQueueMs=(current==null?finalMaxInputQueueBytes:current.MaxQueuedInputBytes)/(24.0*48.0),EncoderInFlightInputMs=current==null?0:current.InFlightInputFrames/48.0,DroppedInputFrames=DroppedInputFrames,InputOverflows=InputOverflows,PendingAc3Bursts=bursts.Count,EncoderFirstBurstMs=current==null?finalFirstBurstMs:current.FirstBurstElapsedMs,CapturedFrames=CapturedFrames,EncodedBursts=EncodedBursts,RenderedBursts=RenderedBursts,Underruns=Underruns,DroppedBursts=DroppedBursts,Discontinuities=Discontinuities,LateBurstWaits=Interlocked.Read(ref LateBurstWaits),EmergencyQueueDrops=Interlocked.Read(ref EmergencyQueueDrops),MaxCaptureGapMs=Interlocked.Read(ref MaxCaptureGapMs),MaxOutputGapMs=Interlocked.Read(ref MaxOutputGapMs),AcceptedPcmFrames=Interlocked.Read(ref acceptedPcmFrames),AudioBurstsRendered=Interlocked.Read(ref audioBurstsRendered),BufferedAudioMs=BufferedAudioMs,ClockCorrectionPpm=ClockCorrectionPpm,ClockTargetCorrectionPpm=synchronizer.TargetCorrectionPpm,FilteredBufferedAudioMs=synchronizer.FilteredBufferFrames/48.0,OutputPaddingMs=OutputPaddingFrames/48.0,MeterSnapshot=MeterSnapshot,CaptureLongGapEvents=Interlocked.Read(ref CaptureLongGapEvents),OutputLongGapEvents=Interlocked.Read(ref OutputLongGapEvents),LastCaptureGapMs=Interlocked.Read(ref LastCaptureGapMs),LastOutputGapMs=Interlocked.Read(ref LastOutputGapMs),LastCaptureGapUtcTicks=Interlocked.Read(ref LastCaptureGapUtcTicks),LastOutputGapUtcTicks=Interlocked.Read(ref LastOutputGapUtcTicks),OutputClockSnapshotMisses=Interlocked.Read(ref OutputClockSnapshotMisses),AudioUptimeMs=uptime,UtcElapsedMinusStopwatchMs=startedUtcTicks==0?0:(utc-Interlocked.Read(ref startedUtcTicks))/(double)TimeSpan.TicksPerMillisecond-uptime,GcGen0Collections=startAttempted?GC.CollectionCount(0)-startGc0:0,GcGen1Collections=startAttempted?GC.CollectionCount(1)-startGc1:0,GcGen2Collections=startAttempted?GC.CollectionCount(2)-startGc2:0});}
+  readonly object metricsGate=new object();
+  readonly JavaScriptSerializer metricsSerializer=new JavaScriptSerializer();
+  public string MetricsJson(){lock(metricsGate){var current=encoder;double uptime=lifetime.Elapsed.TotalMilliseconds;long utc=DateTime.UtcNow.Ticks;return metricsSerializer.Serialize(new{UpdatedAt=DateTime.Now.ToString("o"),Running=Running,Error=Error,SourceFormat=SourceFormat,OutputInfo=OutputInfo,Gain=Gain,BassEnabled=BassEnabled,BassLevel=BassLevel,AddedBassPeak=bass.AddedBassPeak,OutputLfePeak=bass.OutputLfePeak,LastAddedBassPeak=bass.LastAddedBassPeak,LastOutputLfePeak=bass.LastOutputLfePeak,BassMixedFrames=bass.MixedFrames,BassClippedSamples=bass.ClippedSamples,LowLatencyEnabled=LowLatencyEnabled,OutputCapacityFrames=OutputCapacityFrames,CaptureCapacityFrames=CaptureCapacityFrames,MaxCapturePacketFrames=MaxCapturePacketFrames,OutputScheduler=OutputScheduler,CaptureScheduler=CaptureScheduler,ObservedMeanPaddingMs=MeanPaddingMs,ObservedMinPaddingMs=PaddingSamples==0?0:PaddingMinFrames/48.0,ObservedMaxPaddingMs=PaddingMaxFrames/48.0,PaddingSamples=PaddingSamples,OutputEmptyEvents=OutputEmptyEvents,EncoderInputQueueMs=EncoderInputQueueMs,EncoderMaxInputQueueMs=(current==null?finalMaxInputQueueBytes:current.MaxQueuedInputBytes)/(24.0*48.0),EncoderInFlightInputMs=current==null?0:current.InFlightInputFrames/48.0,DroppedInputFrames=DroppedInputFrames,InputOverflows=InputOverflows,PendingAc3Bursts=bursts.Count,EncoderFirstBurstMs=current==null?finalFirstBurstMs:current.FirstBurstElapsedMs,CapturedFrames=CapturedFrames,EncodedBursts=EncodedBursts,RenderedBursts=RenderedBursts,Underruns=Underruns,DroppedBursts=DroppedBursts,Discontinuities=Discontinuities,LateBurstWaits=Interlocked.Read(ref LateBurstWaits),EmergencyQueueDrops=Interlocked.Read(ref EmergencyQueueDrops),MaxCaptureGapMs=Interlocked.Read(ref MaxCaptureGapMs),MaxOutputGapMs=Interlocked.Read(ref MaxOutputGapMs),AcceptedPcmFrames=Interlocked.Read(ref acceptedPcmFrames),AudioBurstsRendered=Interlocked.Read(ref audioBurstsRendered),BufferedAudioMs=BufferedAudioMs,ClockCorrectionPpm=ClockCorrectionPpm,ClockTargetCorrectionPpm=synchronizer.TargetCorrectionPpm,FilteredBufferedAudioMs=synchronizer.FilteredBufferFrames/48.0,OutputPaddingMs=OutputPaddingFrames/48.0,MeterSnapshot=MeterSnapshot,CaptureLongGapEvents=Interlocked.Read(ref CaptureLongGapEvents),OutputLongGapEvents=Interlocked.Read(ref OutputLongGapEvents),LastCaptureGapMs=Interlocked.Read(ref LastCaptureGapMs),LastOutputGapMs=Interlocked.Read(ref LastOutputGapMs),LastCaptureGapUtcTicks=Interlocked.Read(ref LastCaptureGapUtcTicks),LastOutputGapUtcTicks=Interlocked.Read(ref LastOutputGapUtcTicks),OutputClockSnapshotMisses=Interlocked.Read(ref OutputClockSnapshotMisses),AudioUptimeMs=uptime,UtcElapsedMinusStopwatchMs=startedUtcTicks==0?0:(utc-Interlocked.Read(ref startedUtcTicks))/(double)TimeSpan.TicksPerMillisecond-uptime,GcGen0Collections=startAttempted?GC.CollectionCount(0)-startGc0:0,GcGen1Collections=startAttempted?GC.CollectionCount(1)-startGc1:0,GcGen2Collections=startAttempted?GC.CollectionCount(2)-startGc2:0});}}
   public event Action<string> Log;
   public BridgeEngine(string source,string output,string ffmpeg,byte[] silentBurst,bool test){sourceId=source;outputId=output;ffmpegPath=ffmpeg;silence=silentBurst;channelTest=test;ValidateBurst(silence);}
   public static void ValidateBurst(byte[] b){
@@ -183,6 +185,12 @@ namespace Hd820GameBridge {
     }finally{Marshal.FreeCoTaskMem(p);}
     SourceFormat=format.ToString();capture=AudioApi.Service<IAudioCaptureClient>(client);clockRender=AudioApi.Service<IAudioRenderClient>(clock);AudioApi.Check(client.GetBufferSize(out CaptureCapacityFrames),"读取采集缓冲容量");
     uint clockCapacity;AudioApi.Check(clock.GetBufferSize(out clockCapacity),"读取虚拟时钟缓冲");
+    // The WASAPI capacity bounds a packet. Reuse capture-thread workspaces;
+    // valid counts, rather than capacity, flow through DSP and the encoder.
+    int maximumSamples=checked((int)CaptureCapacityFrames*6);
+    byte[] captureBytes=new byte[checked((int)CaptureCapacityFrames*format.BlockAlign)];
+    float[] mappedSamples=new float[maximumSamples];
+    float[] resampledSamples=new float[PcmClockSynchronizer.MaximumOutputSamples(maximumSamples)];
     FillSilent(clockRender,clockCapacity);AudioApi.Check(client.Start(),"开始游戏入口采集");AudioApi.Check(clock.Start(),"开始虚拟入口时钟");Say("采集入口："+SourceFormat);captureReady.Set();
     var watch=Stopwatch.StartNew();long lastPacket=0,previousCapturePoll=0;double lastControllerTime=0,controllerReadyAt=3;
     long lastInputDrops=0,lastBurstDrops=0,lastUnderruns=0;bool controllerMode=LowLatencyEnabled;
@@ -193,11 +201,13 @@ namespace Hd820GameBridge {
      while(frames>0 && !stopping){IntPtr data;uint count,flags;ulong position,qpc;AudioApi.Check(capture.GetBuffer(out data,out count,out flags,out position,out qpc),"取得游戏六声道数据");
       try{
        MaxCapturePacketFrames=Math.Max(MaxCapturePacketFrames,count);
+       if(count>CaptureCapacityFrames)throw new InvalidOperationException("采集包超过设备声明的缓冲容量。");
        if((flags&1)!=0)Interlocked.Increment(ref Discontinuities);
-       byte[] bytes=new byte[checked((int)count*format.BlockAlign)];if((flags&2)==0)Marshal.Copy(data,bytes,0,bytes.Length);
-       var samples=ChannelMapper.ConvertPacket(bytes,(int)count,format,Gain);
-       bass.Enabled=BassEnabled;bass.Level=BassLevel;bass.Apply(samples);
-       meter.Process(samples);
+       int byteCount=checked((int)count*format.BlockAlign);
+       if((flags&2)==0)Marshal.Copy(data,captureBytes,0,byteCount);else Array.Clear(captureBytes,0,byteCount);
+       int sampleCount=ChannelMapper.ConvertPacket(captureBytes,(int)count,format,Gain,mappedSamples);
+       bass.Enabled=BassEnabled;bass.Level=BassLevel;bass.Apply(mappedSamples,sampleCount);
+       meter.Process(mappedSamples,sampleCount);
        long inputDrops=encoder.DroppedInputFrames,burstDrops=Interlocked.Read(ref DroppedBursts),underruns=Interlocked.Read(ref Underruns);
        long renderedAudio;uint renderedPadding;bool clockSnapshotReady=TryReadOutputClock(out renderedAudio,out renderedPadding);
        double buffered=Interlocked.Read(ref acceptedPcmFrames)-inputDrops-(renderedAudio+burstDrops)*1536.0+renderedPadding;
@@ -211,11 +221,10 @@ namespace Hd820GameBridge {
        // continuously instead of letting their drift force periodic 32ms skips.
        if(clockSnapshotReady && controllerTime>=controllerReadyAt && renderedAudio>0 && buffered>=0 && buffered<48000 && dt>0 && dt<0.25)
         synchronizer.UpdateBuffer(buffered,LowLatencyEnabled?4608:7680,dt);
-       samples=synchronizer.Process(samples);
-       byte[] raw=new byte[samples.Length*4];Buffer.BlockCopy(samples,0,raw,0,raw.Length);
+       int encodedSamples=synchronizer.Process(mappedSamples,sampleCount,resampledSamples);
        encoder.DropOldInputOnOverflow=LowLatencyEnabled;
-       if(!encoder.TryWriteOwnedPcmBytes(raw)){Interlocked.Increment(ref InputOverflows);throw new InvalidOperationException("编码器未及时接收音频，已停止以防延迟累积。");}
-       Interlocked.Add(ref acceptedPcmFrames,samples.Length/6);
+       if(!encoder.TryWritePooledSamples(resampledSamples,0,encodedSamples)){Interlocked.Increment(ref InputOverflows);throw new InvalidOperationException("编码器未及时接收音频，已停止以防延迟累积。");}
+       Interlocked.Add(ref acceptedPcmFrames,encodedSamples/6);
        Interlocked.Add(ref CapturedFrames,count);lastPacket=watch.ElapsedMilliseconds;
       }finally{AudioApi.Check(capture.ReleaseBuffer(count),"释放游戏采集缓冲");}
       AudioApi.Check(capture.GetNextPacketSize(out frames),"读取后续游戏音频包");
@@ -230,13 +239,13 @@ namespace Hd820GameBridge {
    try{
     SourceFormat="逐声道测试（70%音量时约-27dBFS）";captureReady.Set();
     string[] names={"左前 FL","右前 FR","中置 C","低音 LFE","左环绕 SL","右环绕 SR"};double[] frequencies={440,554,659,60,784,988};
-    int frames=0;var watch=Stopwatch.StartNew();
+    int frames=0;var watch=Stopwatch.StartNew();float[] data=new float[480*6];
     while(!stopping){
-     float[] data=new float[480*6];int channel=(frames/48000/3)%6;CurrentTestChannel=names[channel];
+     Array.Clear(data,0,data.Length);int channel=(frames/48000/3)%6;CurrentTestChannel=names[channel];
      for(int f=0;f<480;f++){int position=frames+f;double local=(position%144000)/48000.0;double envelope=local<2.0?Math.Min(1,local/0.03)*Math.Min(1,(2-local)/0.03):0;
       data[f*6+channel]=(float)(0.0630957*Gain*Math.Sin(2*Math.PI*frequencies[channel]*position/48000.0)*Math.Max(0,envelope));}
      meter.Process(data);
-     if(!encoder.TryWriteOwnedPcmBytes(ToBytes(data)))throw new InvalidOperationException("测试编码队列拥塞。");
+     if(!encoder.TryWritePooledSamples(data,0,data.Length))throw new InvalidOperationException("测试编码队列拥塞。");
      Interlocked.Add(ref acceptedPcmFrames,data.Length/6);
      frames+=480;Interlocked.Add(ref CapturedFrames,480);long until=frames/48;
      while(!stopping && watch.ElapsedMilliseconds<until)Thread.Sleep(1);

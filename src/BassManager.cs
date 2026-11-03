@@ -53,7 +53,13 @@ namespace Hd820GameBridge
         public void Apply(float[] samples)
         {
             if (samples == null) throw new ArgumentNullException("samples");
-            if (samples.Length % 6 != 0)
+            Apply(samples, samples.Length);
+        }
+
+        public void Apply(float[] samples, int sampleCount)
+        {
+            if (samples == null) throw new ArgumentNullException("samples");
+            if (sampleCount < 0 || sampleCount > samples.Length || sampleCount % 6 != 0)
                 throw new ArgumentException("Bass management requires complete six-channel frames.", "samples");
             float requested = Level;
             double target = Enabled && !float.IsNaN(requested) && !float.IsInfinity(requested)
@@ -62,7 +68,7 @@ namespace Hd820GameBridge
             double addedPeak = 0, outputPeak = 0;
             long mixed = 0, clipped = 0, invalid = 0;
 
-            for (int at = 0; at < samples.Length; at += 6)
+            for (int at = 0; at < sampleCount; at += 6)
             {
                 double mainAverage = 0;
                 for (int channel = 0; channel < 6; channel++)

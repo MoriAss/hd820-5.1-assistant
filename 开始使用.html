@@ -14,8 +14,9 @@ strong{font-weight:650}nav{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 25px;
 @media print{body{background:white;padding:0}main{border:0;padding:0;max-width:none}nav{display:none}a{color:inherit}h2{break-after:avoid}img{max-height:760px;object-fit:contain}tr{break-inside:avoid}}
 </style><main><nav><a href="https://github.com/MoriAss/hd820-5.1-assistant">项目主页</a><a href="#遇到问题先查这里">直接看排错表</a><span>图文教程可离线阅读；下载安装需要联网</span></nav><h1 id="hd820-51-助手">HD820 5.1 助手</h1>
 <p>把 Windows 游戏、音乐和视频中的多声道声音送到 HD820，再通过六根 RCA 线连接功放和 5.1 音箱。提供六声道实时电平、低音补充、FPS 模式、登录自启和托盘后台运行。</p>
-<p><strong>Windows 10 / 11 x64 · v3.3.2 · MIT</strong></p>
-<p><a href="https://github.com/MoriAss/hd820-5.1-assistant/releases/download/v3.3.2/hd820-5.1-assistant-v3.3.2-windows-x64.zip">下载程序包</a> · <a href="https://github.com/MoriAss/hd820-5.1-assistant/releases/tag/v3.3.2">下载页与更新说明</a> · <a href="#%E9%81%87%E5%88%B0%E9%97%AE%E9%A2%98%E5%85%88%E6%9F%A5%E8%BF%99%E9%87%8C">遇到问题</a></p>
+<p><strong>Windows 10 / 11 x64 · v3.4.0 · MIT</strong></p>
+<p><a href="https://github.com/MoriAss/hd820-5.1-assistant/releases/download/v3.4.0/hd820-5.1-assistant-v3.4.0-windows-x64.zip">下载程序包</a> · <a href="https://github.com/MoriAss/hd820-5.1-assistant/releases/tag/v3.4.0">下载页与更新说明</a> · <a href="#%E9%81%87%E5%88%B0%E9%97%AE%E9%A2%98%E5%85%88%E6%9F%A5%E8%BF%99%E9%87%8C">遇到问题</a></p>
+<p>v3.4.0 增加无声检查、配置备份与恢复，并减少音频处理的临时内存分配；<a href="docs/OPTIMIZATION-3.4.0.md">查看优化记录</a>。</p>
 <p>第一次使用，按下面顺序做。程序包已经编译好，不需要 Python、Visual Studio 或自己编译。<strong>下载名字带 <code>windows-x64.zip</code> 的文件</strong>；下载页自动生成的 <code>Source code</code> 是源码，不是可直接运行的程序。</p>
 <h2 id="先确认你有这些东西">先确认你有这些东西</h2>
 <div class="table-scroll" tabindex="0"><table>
@@ -96,7 +97,7 @@ strong{font-weight:650}nav{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 25px;
 <tbody>
 <tr>
 <td data-label="软件">本助手</td>
-<td data-label="下载入口"><a href="https://github.com/MoriAss/hd820-5.1-assistant/releases/download/v3.3.2/hd820-5.1-assistant-v3.3.2-windows-x64.zip">直接下载 v3.3.2 程序包</a></td>
+<td data-label="下载入口"><a href="https://github.com/MoriAss/hd820-5.1-assistant/releases/download/v3.4.0/hd820-5.1-assistant-v3.4.0-windows-x64.zip">直接下载 v3.4.0 程序包</a></td>
 <td data-label="选哪个、做什么">全部解压到固定文件夹，例如 <code>D:\HD820助手</code>。以后登录自启会用这个位置。</td>
 </tr>
 <tr>
@@ -162,8 +163,8 @@ strong{font-weight:650}nav{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 25px;
 <p>这种放法<strong>不需要配置PATH环境变量</strong>。如果使用过 <code>ffmpeg-path.txt</code>，它里面的路径优先；旧路径失效时要更新该文件，旁边放新的<code>ffmpeg.exe</code>不能覆盖旧配置。</p>
 <h2 id="6-打开助手选两个设备">6. 打开助手，选两个设备</h2>
 <p>双击 <code>HD820游戏5.1助手.exe</code>，先暂停游戏或音乐，把功放音量调低。</p>
-<a href="docs/assets/assistant-panel.png" title="打开原图查看细节"><img alt="v3.3.2界面：上方选择游戏入口和HD820输出，中间调音量并看六声道电平，下方启动或测试" loading="eager" src="docs/assets/assistant-panel.png" width="860"/></a>
-<p><em>界面示意由v3.3.2实际控件渲染，设备项及电平是演示数据，没有播放测试音。图中音量与开关不是你的必选值。</em></p>
+<a href="docs/assets/assistant-panel.png" title="打开原图查看细节"><img alt="v3.4.0界面：上方选择游戏入口和HD820输出，中间调音量并看六声道电平，下方启动或测试" loading="eager" src="docs/assets/assistant-panel.png" width="860"/></a>
+<p><em>界面示意由v3.4.0实际控件渲染，设备项及电平是演示数据，没有播放测试音。图中音量与开关不是你的必选值。</em></p>
 <div class="table-scroll" tabindex="0"><table>
 <thead>
 <tr>
@@ -197,6 +198,8 @@ strong{font-weight:650}nav{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 25px;
 <p><strong>不要把“HD820输出”选成普通扬声器、显示器或耳机端点。</strong></p>
 <p>助手发送的是AC3编码载体，需要兼容解码器处理。多个USB音频设备名称相似时，要先核实对应硬件，程序不会替你猜选。</p>
 <p>设备没出现时，检查USB、驱动和第4步，再点“刷新设备”。运行时设备选择会锁定，需先“停止并恢复输出”。</p>
+<p>第一次使用时，请手动选定HD820数字输出。即使列表里只有一个USB数字设备，程序也不会自动认定它就是HD820。</p>
+<p>找不到设备或启动失败时，点 <strong>“无声检查”</strong>。它会检查FFmpeg能否运行、是否带AC3编码和SPDIF封装、静音文件是否完整、虚拟入口是否为5.1/48kHz，以及登录自启状态。检查不播放声音，不更改默认设备；报告可以复制，省略个人路径和设备ID。检查通过后仍要完成下一节的逐声道实听。</p>
 <h2 id="7-先听六个声道再打开游戏">7. 先听六个声道，再打开游戏</h2>
 <ol>
 <li>
@@ -227,6 +230,7 @@ strong{font-weight:650}nav{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 25px;
 <li>真正退出：右键托盘图标 →“退出并恢复输出”。暂时停用则点“停止并恢复输出”。</li>
 <li>自启开启后不要直接移动程序目录。换位置前先关闭自启并退出，移动后重新打开和启用自启。</li>
 <li>最小化保留任务栏，关闭窗口退托盘，两者不同。</li>
+<li>设置会在短暂停止操作后保存；正常退出会立即保存。配置损坏时尝试读取上一份备份，并在日志中提示，不要忽略保存失败提示。</li>
 </ul>
 <h2 id="遇到问题先查这里">遇到问题先查这里</h2>
 <div class="table-scroll" tabindex="0"><table>
@@ -237,6 +241,10 @@ strong{font-weight:650}nav{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 25px;
 </tr>
 </thead>
 <tbody>
+<tr>
+<td data-label="现象">不知道问题出在哪</td>
+<td data-label="先检查什么">先点“无声检查”，按报告中的“需处理”逐项检查。</td>
+</tr>
 <tr>
 <td data-label="现象">找不到FFmpeg</td>
 <td data-label="先检查什么"><code>ffmpeg.exe</code>是否和助手EXE在一起？是否有指向旧位置的<code>ffmpeg-path.txt</code>？</td>
@@ -284,7 +292,7 @@ strong{font-weight:650}nav{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 25px;
 </tbody>
 </table></div>
 <h2 id="支持到什么程度">支持到什么程度</h2>
-<p>已验证HD820 → 六路模拟RCA → 天龙AVR-1507 → 5.1音箱这条链路；v3.3.2通过13组离线回归及六路编解码检查。其他设备、固件和应用需要分别验证。</p>
+<p>已验证HD820 → 六路模拟RCA → 天龙AVR-1507 → 5.1音箱这条链路；本项目提供离线回归及六路编解码检查，具体结果见版本验证摘要。其他设备、固件和应用需要分别验证。</p>
 <p>输出为普通 <strong>5.1 AC3，640kbps，有损编码</strong>。AC3每帧在48kHz下为32ms，采集、排队、USB和硬件解码还会增加延迟。FPS模式不等于零延迟；本项目没有承诺消除所有卡顿，也没有完成端到端延迟测量。</p>
 <p>音乐和浏览器能否使用，取决于应用是否提供多声道PCM、内容和账号权限。本助手不提供杜比授权、不绕过服务限制。<strong>macOS、PS5暂无可用移植版。</strong></p>
 <h2 id="给想自己编译的人">给想自己编译的人</h2>
@@ -296,7 +304,7 @@ strong{font-weight:650}nav{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 25px;
 <pre><code class="language-powershell">python -m pip install -r .\tests\requirements.txt
 python .\tests\run_tests.py --ffmpeg C:\tools\ffmpeg\bin\ffmpeg.exe
 </code></pre>
-<p>测试不打开物理音频输出。命令行参数见<a href="docs/DEVELOPMENT.md">开发者说明</a>，另有<a href="docs/ARCHITECTURE.md">架构说明</a>、<a href="docs/DEBUG-20261103.md">调试记录</a>和<a href="docs/VALIDATION-3.3.2.json">验证摘要</a>。</p>
+<p>测试不打开物理音频输出。命令行参数见<a href="docs/DEVELOPMENT.md">开发者说明</a>，另有<a href="docs/ARCHITECTURE.md">架构说明</a>、<a href="docs/DEBUG-20261103.md">调试记录</a>和<a href="docs/VALIDATION-3.4.0.json">验证摘要</a>。</p>
 <h2 id="开源协议">开源协议</h2>
 <p><a href="LICENSE">MIT License</a>，Copyright (c) 2026 MoriAss。允许使用、修改、分发和商用，须保留版权声明与许可文本。第三方依赖仍遵守各自的<a href="THIRD_PARTY_NOTICES.md">许可证或厂商条款</a>。</p>
 </main></html>

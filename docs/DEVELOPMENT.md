@@ -20,6 +20,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -OutputRoot 
 | `--show` | 显示面板或唤醒现有实例 |
 | `--exit` | 请求退出并恢复路由 |
 | `--enable-startup` / `--disable-startup` | 管理当前用户登录任务 |
+| `--diagnose` | 无声检查并写入程序目录 diagnostics-latest.txt；运行中也可检查，不切换设备 |
 | `--list` | 将端点清单写入本机logs |
 | `--restore` | 按路由快照尝试恢复 |
 | `--probe-output` | 初始化所选数字输出检查支持，可能短暂占用设备 |
@@ -35,6 +36,27 @@ python -m pip install -r .\tests\requirements.txt
 python .\tests\run_tests.py --ffmpeg C:\tools\ffmpeg\bin\ffmpeg.exe
 ```
 
-结果保存在忽略的`test-results`。同一套测试由Windows GitHub Actions运行，覆盖13组回归和AC3编解码断言；UTF-8带/无BOM均核验实际六路内容。
+结果保存在忽略的`test-results`。同一套测试由Windows GitHub Actions运行，覆盖音频、UI、依赖检查和AC3编解码断言；UTF-8带/无BOM均核验实际六路内容。
 
 源码和程序包附MIT LICENSE与第三方说明。FFmpeg、Voicemeeter驱动另行安装；不能将离线通过当成USB、解码器或模拟输出连续的证明，见[调试记录](DEBUG-20261103.md)。
+
+## 生成可下载程序包
+
+先构建，并对该EXE执行全部离线测试，再运行：
+
+```powershell
+python tools/package_release.py --version 3.4.0 --build-dir ./dist --validation ./test-results/ci/summary.json
+```
+
+默认输出到 `release`。工具绑定测试时的EXE、源码、静音载体、测试定义和构建脚本，拒绝覆盖已有发布包。只收入程序、说明、许可与配图，排除个人设置、日志、路由快照和FFmpeg。ZIP内附 release-manifest.json 和各文件SHA256，同一组输入字节生成相同ZIP；这不表示不同机器重新编译的EXE必定相同。
+
+GitHub Actions执行同一打包命令，其可下载artifact也包含离线教程。
+
+修改README后，可重建离线HTML：
+
+```powershell
+python -m pip install -r tools/requirements-docs.txt
+python tools/render_guide.py
+```
+
+说明页检查完再打包。`tools/requirements-docs.txt`仅用于维护教程，普通使用者不需要安装Python。

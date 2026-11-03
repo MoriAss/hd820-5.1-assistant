@@ -1,0 +1,221 @@
+{
+  "version": "3.4.0",
+  "date": "2026-11-04",
+  "status": "offline-regressions-and-local-deployment-passed",
+  "reviewedBinarySha256": "291b624b97b47aadcc1f4b80c46d60e964e63a99410039792422917240e3fafe",
+  "groups": [
+    {
+      "name": "ChannelMapperHarness",
+      "status": "passed",
+      "seconds": 0.375
+    },
+    {
+      "name": "ClockSynchronizerHarness",
+      "status": "passed",
+      "seconds": 5.282
+    },
+    {
+      "name": "MeterHarness",
+      "status": "passed",
+      "seconds": 0.484
+    },
+    {
+      "name": "EncoderHarness",
+      "status": "passed",
+      "seconds": 6.453
+    },
+    {
+      "name": "BassManagerHarness",
+      "status": "passed",
+      "seconds": 3.735
+    },
+    {
+      "name": "EncoderDropHarness",
+      "status": "passed",
+      "seconds": 0.75
+    },
+    {
+      "name": "EncoderLifecycleHarness",
+      "status": "passed",
+      "seconds": 2.546
+    },
+    {
+      "name": "StopAndCarrierHarness",
+      "status": "passed",
+      "seconds": 4.938
+    },
+    {
+      "name": "TrayRestoreHarness",
+      "status": "passed",
+      "seconds": 19.781
+    },
+    {
+      "name": "TrayLifecycleHarness",
+      "status": "passed",
+      "seconds": 2.797
+    },
+    {
+      "name": "DeepAudioRegressionHarness",
+      "status": "passed",
+      "seconds": 1.719
+    },
+    {
+      "name": "UiLifecycleHarness",
+      "status": "passed",
+      "seconds": 3.328
+    },
+    {
+      "name": "EncoderPreambleHarness",
+      "status": "passed",
+      "seconds": 12.656
+    },
+    {
+      "name": "ChannelConversionHarness",
+      "status": "passed",
+      "seconds": 0.438
+    },
+    {
+      "name": "BufferAndPreflightHarness",
+      "status": "passed",
+      "seconds": 0.781
+    },
+    {
+      "name": "AudioBufferHarness",
+      "status": "passed",
+      "seconds": 7.797
+    },
+    {
+      "name": "UiOptimizationHarness",
+      "status": "passed",
+      "seconds": 1.953
+    },
+    {
+      "name": "StopResponsivenessHarness",
+      "status": "passed",
+      "seconds": 1.234
+    }
+  ],
+  "roundtripAssertions": 147,
+  "roundtripAllPassed": true,
+  "roundtrip": {
+    "channels": 6,
+    "channelIsolation": true,
+    "bassAndNativeLfe": true,
+    "overflowChannelAlignment": true,
+    "silenceBelowMinus100DbFs": true,
+    "utf8PreambleRoundtrips": [
+      "utf8-bom",
+      "utf8-no-bom"
+    ],
+    "measurementsFile": "roundtrip-evidence.json"
+  },
+  "sourceHashes": {
+    "src/AppLifetime.cs": "f13a3ec8470b7cd636baab9afc0dd3e7c08fc2b648f4c2324c9bc386859101cd",
+    "src/AssemblyInfo.cs": "4fc3310af456183d575e2989bb4609257dce5890034cb724332c00360d02d30f",
+    "src/AudioScheduler.cs": "e116f95b159f84659dc8abe48657c7a8c88e496e7a793933b0fce4a14deba7d3",
+    "src/BassManager.cs": "e89b75d84012de4bbdd788f64038099cb5d3a3b8499c13542ce684be913b6ed9",
+    "src/BridgeEngine.cs": "e556835faa837addaf1eac9e4b8565963973e94bf7f71930ec860b2ba4dc66a0",
+    "src/ChannelMeter.cs": "d7529e89d331701544635a5e14eadf0511d06ece00153ba0b7f5e5d9affcc033",
+    "src/ChannelMeterControl.cs": "d2b7da2b18331c79a4c5711c593e3ce4aab704d3d42c0c873d1638bed8c67eaf",
+    "src/CoreAudio.cs": "fab7381b63058411e7b724044c8f772654eba5e13e705d8cc929274b31c1cff7",
+    "src/ModernUi.cs": "b85f2d23f183cafe4fdaa446045ddbf09a0583779ca8996ce4a1754fa7ccbb1f",
+    "src/PcmClockSynchronizer.cs": "4904ddd861009ffe863580ab2eb8ed79cf491e27b04974a64a8f83b3ac4ee568",
+    "src/Preflight.cs": "c63dd64fd7a2242db67194fcc669797626ea5d37218d5c4dac313493a92d8fde",
+    "src/Program.cs": "30c58dde7cb5c7ad8ff5616769e0b4f1266101afa9860eb5f9de530906a921cd",
+    "src/RuntimeConfig.cs": "55cbe03df12001d6cf435131fcf8bbec19f718c596079bef73d3980054883325",
+    "src/VirtualStimulus.cs": "006f38869bdebc1ce4b4eaf98eb02dd83d3ed3b28b69c9009cb67966e54418aa",
+    "src/encoder/RealtimeAc3Encoder.cs": "e72bcf200659739b77bbc2404a6b993a21c8ab4cbb580d984f195f2915b3206b",
+    "src/reviewer/AudioPolicy.cs": "075df8bd9abc06bbe99bc1d6c9434cfc7540ce13805012efb0ebcf489d4335ad"
+  },
+  "validationInputHashes": {
+    "build.ps1": "059c5d6252f02a3cf200f8230358bb1d5cd189266488869be0d4bc78cbd6e395",
+    "src/encoder/silence-ac3-640k.spdif": "62610d8d6f627c52a8799c5eba479009922967dbe8213a3ae5e646e7f2635c16",
+    "tests/AudioBufferHarness.cs": "e8c02658e462644a981e465078a1a77fc260e19ba90254f8533b13ff419d550c",
+    "tests/BassManagerHarness.cs": "010c8132630f912056092e0e363c8abd41eefabc7d8b62f70246d8e552afada6",
+    "tests/BufferAndPreflightHarness.cs": "9c8273b64f030ffd38799a8f5c723072b97fcfe70b2caecad0f394cc9c23c0b8",
+    "tests/ChannelConversionHarness.cs": "d962ec415668184c616dcf0d6aa885f4b18f76f7e7be4f5da94ecfb54b3f4bc5",
+    "tests/ChannelMapperHarness.cs": "6364835de53c158a062f4804479c84dbcfdf51612dc16a344b3ce2d86ddf01b6",
+    "tests/ClockSynchronizerHarness.cs": "04170bef6db3605221b390032c29ea02f0c27bfe69d6990fb1b3e044e6f80cbd",
+    "tests/DeepAudioRegressionHarness.cs": "0d4e0e6fb95213c2f8bc69c7e667b03e355bdf32acb9471295269e12fa485368",
+    "tests/EncoderDropHarness.cs": "92a7f2bf0fa9157846d870ec069b4d20498ba5f480d33724158f68a794567d9d",
+    "tests/EncoderHarness.cs": "8e5b776874acd706cc186b856e4acd87e47966da3fec7cd0d151363a9833e27d",
+    "tests/EncoderLifecycleHarness.cs": "f5e9660587bded42b33e4f9bb9c3720e1eaa248859706d49b43ada66f758ed3c",
+    "tests/EncoderPreambleHarness.cs": "28bf9ea9fb3958f6d98da545068e21c6f16a03fa21593d4d1323fe9b359272fc",
+    "tests/extra-tests.json": "10ae6981413efbc2e502301b62dde52db547a4c748a04bb8ab5ab2ef0af86043",
+    "tests/MeterHarness.cs": "2e95dc0b62e3bacfd6d42a4423b5c53fdeaaafb400571ebe10a690776291d8d1",
+    "tests/requirements.txt": "99f43573522565d7c480efd1f954892948033915df6a4e685327e995d3396eb6",
+    "tests/run_tests.py": "4c16f96d8d9ce7044df0623abce4e10e85ad7a9b15aac45bddccb060639dec2c",
+    "tests/StopAndCarrierHarness.cs": "4862b8104c9d14406c949b836cf6fb2041acd83b0a0a2c177a5f8eb7a268f083",
+    "tests/StopResponsivenessHarness.cs": "d5f3d6e7e4e8463e67b48732fc9392e54dc60835d0d89594ff04cc30010bec0b",
+    "tests/TrayLifecycleHarness.cs": "e29ea0b72e4f3132c4c3342b22bae6d15f935e8cb99b1609cad718059ce1bfa0",
+    "tests/TrayRestoreHarness.cs": "162d0a212cc5897e47a869c1d8c5b797ae63ec446998ded79bbd15a260d1878e",
+    "tests/UiLifecycleHarness.cs": "35470230164cf107e1e9a49afd2e73bff3e2b6a2cb498119d3fdb9fff7eace57",
+    "tests/UiOptimizationHarness.cs": "b47cab16520896c12d4595da5236b1d776ccf66325a90af8c57a0994bceb78bc"
+  },
+  "uiOptimizationCases": 13,
+  "uiOptimizationAllPassed": true,
+  "limits": [
+    "Offline tests do not prove speaker continuity or end-to-end latency.",
+    "Real hardware playback and reboot/logon are verified separately.",
+    "The binary is bound to this reviewed build, not claimed reproducible across compilers."
+  ],
+  "ffmpegCompatibility": {
+    "fullSuite": "9.0.2",
+    "legacyPooledSixChannelRoundtrip": "4.3.2",
+    "legacyPassed": true
+  },
+  "localDeployment": {
+    "loginTaskManualRunPassed": true,
+    "actualRebootOrLogonTestedThisVersion": false,
+    "preferencesPreserved": true,
+    "runningBinaryMatchesReviewedSha256": true,
+    "closeToTrayThenCliShowSameProcessPassed": true,
+    "runningReadOnlyDiagnosticPassed": true,
+    "nativeScreenshotLimitation": "Native capture returned a blank frame; control tree and isolated UI rendering checked separately."
+  },
+  "backgroundSilentObservation": {
+    "beforeVersion": "3.3.2",
+    "afterVersion": "3.4.0",
+    "before": {
+      "seconds": 60.14099999994505,
+      "assistantCpuPercentOfOneCore": 5.767695914605958,
+      "telemetrySamples": 30,
+      "nonSilentSamples": 0,
+      "counterDeltas": {
+        "GcGen0Collections": 60,
+        "GcGen1Collections": 8,
+        "GcGen2Collections": 4,
+        "Underruns": 0,
+        "DroppedInputFrames": 0,
+        "DroppedBursts": 0,
+        "OutputEmptyEvents": 0
+      }
+    },
+    "after": {
+      "seconds": 60.125,
+      "assistantCpuPercentOfOneCore": 2.494802494802495,
+      "telemetrySamples": 12,
+      "nonSilentSamples": 0,
+      "counterDeltas": {
+        "GcGen0Collections": 2,
+        "GcGen1Collections": 1,
+        "GcGen2Collections": 1,
+        "Underruns": 0,
+        "DroppedInputFrames": 0,
+        "DroppedBursts": 0,
+        "OutputEmptyEvents": 0
+      }
+    },
+    "limits": "One sequential 60-second sample per version, same machine and FFmpeg, silent input. Process age and machine load differ. GC deltas span telemetry timestamps, sampled every 2 seconds before and 5 seconds after. Not a gaming benchmark or speaker/latency measurement; working set not compared."
+  },
+  "guideChecks": {
+    "cssWidths": [
+      360,
+      390,
+      430
+    ],
+    "horizontalOverflow": false,
+    "allFourImagesLoaded": true,
+    "troubleshootingAnchorPassed": true
+  }
+}

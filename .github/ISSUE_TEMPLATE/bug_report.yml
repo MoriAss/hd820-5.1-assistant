@@ -1,0 +1,35 @@
+name: 故障反馈
+description: 无声、声道错误、卡顿或界面问题
+title: "[问题] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        先在助手中运行“无声检查”。请描述实际听到或看到的现象，电平柱正常不代表音箱实际正常。
+        分享前检查报告内容；不要上传整份 logs、routing-before.xml、设备ID或私人文件路径。
+  - type: input
+    id: version
+    attributes:
+      label: 助手和 Windows 版本
+      placeholder: 例如 v3.4.0 / Windows 11 24H2
+    validations:
+      required: true
+  - type: textarea
+    id: chain
+    attributes:
+      label: 接线与播放软件
+      description: 解码器型号、固件（知道的话）、功放/音箱、游戏或播放器，以及USB和RCA接法。
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 发生了什么，如何再次出现
+      description: 写出操作顺序、实际现象、预期结果。卡顿请注明大概时刻、是否切歌或暂停，以及FPS模式和低音补充是否开启。
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: 无声检查结果或完整错误文字
+      description: 粘贴检查报告中相关部分；也可注明哪些音箱在逐声道测试时发声。

@@ -15,3 +15,6 @@
 .vs/
 .env*
 !.env.example
+
+/release/
+/diagnostics-latest.txt

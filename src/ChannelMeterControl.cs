@@ -19,17 +19,20 @@ namespace Hd820GameBridge {
   void ResetLevels(){for(int i=0;i<6;i++){rms[i]=peak[i]=hold[i]=ChannelMeterSnapshot.FloorDbFs;holdUntil[i]=0;}hasSignal=false;}
   public void SetSnapshot(ChannelMeterSnapshot value){SetSnapshot(value,DateTime.UtcNow.Ticks);}
   internal void SetSnapshot(ChannelMeterSnapshot value,long now){
+   bool previousFresh=fresh,previousSignal=hasSignal,changed=false;
    double seconds=lastUpdate==0?0.05:Math.Max(0,Math.Min(0.5,(now-lastUpdate)/(double)TimeSpan.TicksPerSecond));lastUpdate=now;
    fresh=value!=null && value.IsFresh(now);hasSignal=false;
-   if(!fresh)ResetLevels();
+   if(!fresh){for(int i=0;i<6;i++)changed|=rms[i]!=ChannelMeterSnapshot.FloorDbFs || peak[i]!=ChannelMeterSnapshot.FloorDbFs || hold[i]!=ChannelMeterSnapshot.FloorDbFs;ResetLevels();}
    else for(int i=0;i<6;i++){
+    double oldRms=rms[i],oldPeak=peak[i],oldHold=hold[i];
     double p=value.PeakDbFs[i],r=value.RmsDbFs[i];hasSignal|=p>ChannelMeterSnapshot.FloorDbFs+0.1;
-    if(p<=ChannelMeterSnapshot.FloorDbFs+0.1){rms[i]=peak[i]=hold[i]=ChannelMeterSnapshot.FloorDbFs;holdUntil[i]=0;continue;}
+    if(p<=ChannelMeterSnapshot.FloorDbFs+0.1){rms[i]=peak[i]=hold[i]=ChannelMeterSnapshot.FloorDbFs;holdUntil[i]=0;changed|=oldRms!=rms[i] || oldPeak!=peak[i] || oldHold!=hold[i];continue;}
     rms[i]=Math.Max(r,rms[i]-30*seconds);peak[i]=Math.Max(p,peak[i]-48*seconds);
     if(p>=hold[i]){hold[i]=p;holdUntil[i]=now+TimeSpan.TicksPerMillisecond*1200;}
     else if(now>holdUntil[i])hold[i]=Math.Max(p,hold[i]-18*seconds);
+    changed|=oldRms!=rms[i] || oldPeak!=peak[i] || oldHold!=hold[i];
    }
-   Invalidate();
+   if(changed || previousFresh!=fresh || previousSignal!=hasSignal)Invalidate();
   }
   internal bool HasFreshSignal {get{return fresh && hasSignal;}}
   internal double DisplayedRms(int channel){return rms[channel];}

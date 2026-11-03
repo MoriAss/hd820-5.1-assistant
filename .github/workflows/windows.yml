@@ -5,6 +5,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   test:
     runs-on: windows-latest
@@ -31,6 +34,12 @@ jobs:
         run: |
           python tests/run_tests.py --assembly './dist/HD820游戏5.1助手.exe' --output ./test-results/ci
           if ($LASTEXITCODE -ne 0) { throw 'Regression suite failed' }
+      - name: Package tested portable release
+        shell: pwsh
+        run: |
+          $version = (Get-Item './dist/HD820游戏5.1助手.exe').VersionInfo.FileVersion -replace '\.0$',''
+          python tools/package_release.py --version $version --validation ./test-results/ci/summary.json
+          if ($LASTEXITCODE -ne 0) { throw 'Verified packaging failed' }
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -39,4 +48,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: hd820-5.1-assistant-windows-x64
-          path: dist/
+          path: release/

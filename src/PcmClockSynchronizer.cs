@@ -71,8 +71,34 @@ namespace Hd820GameBridge {
     for(int ch=0;ch<Channels;ch++)previous[ch]=clean[(frames-1)*Channels+ch];
     havePrevious=true;inputFrames+=frames;outputFrames+=frames;return clean;
    }
-   int maximum=checked((int)Math.Ceiling((frames+2)/(1-MaximumCorrectionPpm/1000000.0))+2);
-   var result=new float[checked(maximum*Channels)];int written=0;
+   var result=new float[MaximumOutputSamples(samples.Length)];
+   int count=Process(samples,samples.Length,result);
+   if(result.Length!=count)Array.Resize(ref result,count);
+   return result;
+  }
+  internal static int MaximumOutputSamples(int sampleCount){
+   if(sampleCount<0 || sampleCount%Channels!=0)throw new ArgumentOutOfRangeException("sampleCount");
+   if(sampleCount==0)return 0;
+   int frames=sampleCount/Channels;
+   return checked(((int)Math.Ceiling((frames+2.0)/(1-MaximumCorrectionPpm/1000000.0))+2)*Channels);
+  }
+  // The capture thread owns both workspaces. Only sampleCount valid input
+  // samples are consumed; capacity beyond the returned count is never PCM.
+  internal int Process(float[] samples,int sampleCount,float[] result){
+   if(samples==null)throw new ArgumentNullException("samples");
+   if(result==null)throw new ArgumentNullException("result");
+   if(sampleCount<0 || sampleCount>samples.Length || sampleCount%Channels!=0)throw new ArgumentOutOfRangeException("sampleCount");
+   if(Object.ReferenceEquals(samples,result))throw new ArgumentException("Resampling requires separate input and output workspaces.","result");
+   int frames=sampleCount/Channels;if(frames==0)return 0;
+   if(nextPosition==0 && step==1 && targetPpm==0){
+    if(result.Length<sampleCount)throw new ArgumentException("Output workspace is too small.","result");
+    for(int i=0;i<sampleCount;i++)result[i]=Clean(samples[i]);
+    for(int ch=0;ch<Channels;ch++)previous[ch]=result[(frames-1)*Channels+ch];
+    havePrevious=true;inputFrames+=frames;outputFrames+=frames;return sampleCount;
+   }
+   int maximum=MaximumOutputSamples(sampleCount)/Channels;
+   if(result.Length<maximum*Channels)throw new ArgumentException("Output workspace is too small.","result");
+   int written=0;
    double desiredStep=1+targetPpm/1000000.0;
    double maximumStepChange=SlewPpmPerSecond/(1000000.0*SampleRate);
    while(nextPosition<=frames-1){
@@ -95,8 +121,7 @@ namespace Hd820GameBridge {
    // Retaining it and the fractional phase avoids duplicate/missing block edges.
    for(int ch=0;ch<Channels;ch++)previous[ch]=Clean(samples[(frames-1)*Channels+ch]);
    havePrevious=true;inputFrames+=frames;outputFrames+=written;
-   if(result.Length!=written*Channels)Array.Resize(ref result,written*Channels);
-   return result;
+   return written*Channels;
   }
  }
 }

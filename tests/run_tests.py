@@ -162,6 +162,7 @@ def roundtrip(ffmpeg, output):
             check(label + '.leakageRatio', leakage is not None and leakage < .01, leakage, {'lessThan': .01})
     try:
         inspect_channels('channels', output / 'channels.spdif')
+        inspect_channels('pooled', output / 'audio-buffer/pooled.spdif')
         for encoding in ('utf8-bom', 'utf8-no-bom'):
             inspect_channels(encoding, output / 'encoder-preamble' / (encoding + '.spdif'))
         evidence['stage'] = 'bass'
@@ -232,6 +233,8 @@ def main():
         report['assemblySha256'] = hashlib.sha256(assembly.read_bytes()).hexdigest()
         report['ffmpegVersion'] = run([ffmpeg,'-version']).stdout.decode(errors='replace').splitlines()[0]
         report['sourceHashes'] = {str(s.relative_to(ROOT)).replace('\\','/'): hashlib.sha256(s.read_bytes()).hexdigest() for s in SOURCES}
+        bound_inputs = [ROOT/'build.ps1', SRC/'encoder/silence-ac3-640k.spdif'] + [s for s in TESTS.rglob('*') if s.is_file() and s.suffix in {'.cs','.py','.json','.txt'}]
+        report['validationInputHashes'] = {s.relative_to(ROOT).as_posix(): hashlib.sha256(s.read_bytes()).hexdigest() for s in bound_inputs}
         cases = [
             ('ChannelMapperHarness', 'Hd820GameBridge.ChannelMapperHarness', []),
             ('ClockSynchronizerHarness', 'ClockSynchronizerHarness', []),

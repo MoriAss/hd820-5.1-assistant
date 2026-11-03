@@ -24,8 +24,7 @@ internal static class EncoderDropHarness
     }
     static byte[][] Pending(RealtimeAc3Encoder encoder)
     {
-        var queue = (Queue<byte[]>)typeof(RealtimeAc3Encoder).GetField("_inputQueue", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(encoder);
-        return queue.ToArray();
+        return encoder.SnapshotQueuedInput();
     }
     static int Main(string[] args)
     {

@@ -2,6 +2,44 @@
   {
     "file": "EncoderPreambleHarness.cs",
     "main": "EncoderPreambleHarness",
-    "args": ["{src}/encoder/silence-ac3-640k.spdif", "{output}/encoder-preamble", "{ffmpeg}"]
+    "args": [
+      "{src}/encoder/silence-ac3-640k.spdif",
+      "{output}/encoder-preamble",
+      "{ffmpeg}"
+    ]
+  },
+  {
+    "file": "ChannelConversionHarness.cs",
+    "main": "ChannelConversionHarness",
+    "args": []
+  },
+  {
+    "file": "BufferAndPreflightHarness.cs",
+    "main": "BufferAndPreflightHarness",
+    "args": []
+  },
+  {
+    "file": "AudioBufferHarness.cs",
+    "main": "AudioBufferHarness",
+    "args": [
+      "{src}/encoder/silence-ac3-640k.spdif",
+      "{output}/audio-buffer",
+      "{ffmpeg}"
+    ]
+  },
+  {
+    "file": "UiOptimizationHarness.cs",
+    "main": "UiOptimizationHarness",
+    "args": [
+      "{output}/ui-optimization.json"
+    ]
+  },
+  {
+    "file": "StopResponsivenessHarness.cs",
+    "main": "StopResponsivenessHarness",
+    "args": [
+      "{src}/encoder/silence-ac3-640k.spdif",
+      "guarded"
+    ]
   }
 ]
