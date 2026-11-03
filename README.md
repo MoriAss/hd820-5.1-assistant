@@ -85,4 +85,8 @@ GitHub Actions 配置在 Windows runner 上构建并运行同一套测试。一�
 
 查看 [架构和诊断说明](docs/ARCHITECTURE.md)、[调试记录](docs/DEBUG-20261103.md) 和 [第三方依赖](THIRD_PARTY_NOTICES.md)。
 
-此仓库公开提供源码，尚未附加开源许可证；不代表授予第三方依赖的分发许可。
+## 开源协议
+
+本项目采用 [MIT License](LICENSE)，版权署名为 Copyright (c) 2026 MoriAss。允许使用、修改、分发和商用，须保留版权声明及许可文本。
+
+FFmpeg、Voicemeeter 等第三方依赖仍遵守各自的许可证或厂商条款，详见 [第三方说明](THIRD_PARTY_NOTICES.md)。本项目的 MIT 许可不替代这些条款。
