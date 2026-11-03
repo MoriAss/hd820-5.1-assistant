@@ -1,0 +1,127 @@
+{
+  "version": "3.3.2",
+  "date": "2026-11-03",
+  "localPlatform": "Windows 11 x64 build 26300",
+  "status": "offline-regressions-passed",
+  "reviewedBinarySha256": "a550e4933fcd83a458eb8d2df8bed09b942b302f60a98c0fba19fd7928987a8f",
+  "groups": [
+    {
+      "name": "ChannelMapperHarness",
+      "status": "passed",
+      "seconds": 0.359
+    },
+    {
+      "name": "ClockSynchronizerHarness",
+      "status": "passed",
+      "seconds": 5.344
+    },
+    {
+      "name": "MeterHarness",
+      "status": "passed",
+      "seconds": 0.469
+    },
+    {
+      "name": "EncoderHarness",
+      "status": "passed",
+      "seconds": 6.422
+    },
+    {
+      "name": "BassManagerHarness",
+      "status": "passed",
+      "seconds": 3.75
+    },
+    {
+      "name": "EncoderDropHarness",
+      "status": "passed",
+      "seconds": 0.734
+    },
+    {
+      "name": "EncoderLifecycleHarness",
+      "status": "passed",
+      "seconds": 2.547
+    },
+    {
+      "name": "StopAndCarrierHarness",
+      "status": "passed",
+      "seconds": 4.969
+    },
+    {
+      "name": "TrayRestoreHarness",
+      "status": "passed",
+      "seconds": 19.89
+    },
+    {
+      "name": "TrayLifecycleHarness",
+      "status": "passed",
+      "seconds": 2.828
+    },
+    {
+      "name": "DeepAudioRegressionHarness",
+      "status": "passed",
+      "seconds": 1.75
+    },
+    {
+      "name": "UiLifecycleHarness",
+      "status": "passed",
+      "seconds": 3.313
+    },
+    {
+      "name": "EncoderPreambleHarness",
+      "status": "passed",
+      "seconds": 12.672
+    }
+  ],
+  "roundtrip": {
+    "channels": 6,
+    "channelIsolation": true,
+    "bassAndNativeLfe": true,
+    "overflowChannelAlignment": true,
+    "silenceBelowMinus100DbFs": true,
+    "utf8PreambleRoundtrips": [
+      "utf8-bom",
+      "utf8-no-bom"
+    ],
+    "measurementsFile": "roundtrip-evidence.json"
+  },
+  "sourceHashes": {
+    "src/AppLifetime.cs": "f13a3ec8470b7cd636baab9afc0dd3e7c08fc2b648f4c2324c9bc386859101cd",
+    "src/AssemblyInfo.cs": "026e3523aff9e17a0965ad5876893820043307852626d8567b2747b61acf8a8d",
+    "src/AudioScheduler.cs": "e116f95b159f84659dc8abe48657c7a8c88e496e7a793933b0fce4a14deba7d3",
+    "src/BassManager.cs": "9eaa58d9c337559d0bb0be6473d68abf8a5c60b7e9cba797b4ed55b7cb9995e5",
+    "src/BridgeEngine.cs": "74adeaf18382c0938cc1dd03c9e369b61a71c7fa113b43065075943e71eb1d51",
+    "src/ChannelMeter.cs": "a1aee73a34570e279298d9ece1c91635b2742c843bb79a1a75314c8a90fae5d3",
+    "src/ChannelMeterControl.cs": "94516ec117086de4c0b88f699862810e49b925f32b0b52004e391ab36eb03d17",
+    "src/CoreAudio.cs": "23ce353474c21d739d358fac7dff2905bb96183fa353a2b9fa34c196f7870fbf",
+    "src/ModernUi.cs": "d7ec670c32141b778758e32e7bd30e5ef160c33ba6153ae05e59b07b1c1bce19",
+    "src/PcmClockSynchronizer.cs": "9a27ad7f3ffa6452bb84f8c1f6d761bac30359a7cbea36c238b2a213306f7357",
+    "src/Program.cs": "fd40ba575d5cd899f14f87332a38b2bb3bc3b20a0bae01b6a41c4e9584e45d65",
+    "src/RuntimeConfig.cs": "54a593c84c2ded6e056fb980b0de8a9338d56e58bb2268299335f43cf79b6108",
+    "src/VirtualStimulus.cs": "006f38869bdebc1ce4b4eaf98eb02dd83d3ed3b28b69c9009cb67966e54418aa",
+    "src/encoder/RealtimeAc3Encoder.cs": "a6b21f0f6a4ae71322c908ea6f95979bc401fc2033d17e914f18f6ebb3a5a873",
+    "src/reviewer/AudioPolicy.cs": "075df8bd9abc06bbe99bc1d6c9434cfc7540ce13805012efb0ebcf489d4335ad"
+  },
+  "deepAudioCases": [
+    "finite-math-and-denormal-silence",
+    "complete-carrier-rejection",
+    "engine-lifecycle-and-gap-telemetry",
+    "consistent-output-clock-snapshot",
+    "concurrent-padding-mode-reset",
+    "encoder-lifecycle-and-pipe-completion"
+  ],
+  "deepAudioAssertions": 52077,
+  "uiRegressionCases": 19,
+  "trayRestoreCases": 8,
+  "lifecycleCases": 20,
+  "productionSmoke": {
+    "scheduledTaskRunStartedBridge": true,
+    "originalPreferencesPreserved": true,
+    "closeToTrayAndSameProcessRestore": true
+  },
+  "limits": [
+    "User was unavailable for listening; audible stutter improvement is unconfirmed.",
+    "Scheduled task Run is verified; a fresh OS logon/reboot is not.",
+    "No physical loopback or end-to-end latency measurement.",
+    "The binary hash identifies this local reviewed build; builds are not claimed bit-reproducible.",
+    "Hosted CI status is separate from these local results; see repository Actions."
+  ]
+}

@@ -94,12 +94,19 @@ namespace Hd820GameBridge
             if (_disposed) throw new ObjectDisposedException("RealtimeAc3Encoder");
             if (_stopping) throw new InvalidOperationException("Create a new encoder instance after Stop.");
             if (_process != null) throw new InvalidOperationException("Create a new encoder instance for each run.");
+            // .NET Framework creates StandardInput as an AutoFlush StreamWriter
+            // using Console.InputEncoding. Process.Start itself writes that
+            // encoding's preamble, even though PCM uses only BaseStream. Account
+            // for these non-PCM bytes without changing the global console encoding.
+            int inputPreambleBytes = Console.InputEncoding.GetPreamble().Length;
             var info = new ProcessStartInfo();
             info.FileName = _ffmpegPath;
             // Small probing and bounded pipe reads avoid FFmpeg's normal multi-second startup buffering.
             // Explicit layout is essential: six interleaved samples alone do not identify channel order.
-            info.Arguments = "-hide_banner -loglevel warning -nostats -probesize 32 -analyzeduration 0 " +
-                "-f f32le -ar 48000 -ac 6 -channel_layout 5.1 -blocksize 36864 -i pipe:0 " +
+            info.Arguments = "-hide_banner -xerror -loglevel warning -nostats -probesize 32 -analyzeduration 0 " +
+                "-f f32le -ar 48000 -ac 6 -channel_layout 5.1 -blocksize 36864 " +
+                (inputPreambleBytes == 0 ? "" : "-skip_initial_bytes " + inputPreambleBytes.ToString(System.Globalization.CultureInfo.InvariantCulture) + " ") +
+                "-i pipe:0 " +
                 "-map 0:a:0 -c:a ac3 -b:a " + _bitrateKbps.ToString(System.Globalization.CultureInfo.InvariantCulture) +
                 "k -ar 48000 -ac 6 -flush_packets 1 -f spdif pipe:1";
             info.UseShellExecute = false;
@@ -123,6 +130,11 @@ namespace Hd820GameBridge
             try
             {
                 if (!_process.Start()) throw new InvalidOperationException("Could not start FFmpeg.");
+                // Another component can change Console.InputEncoding while Start
+                // creates its writer. Fail before sending any PCM if the actual
+                // preamble length differs from the bytes FFmpeg will skip.
+                if (_process.StandardInput.Encoding.GetPreamble().Length != inputPreambleBytes)
+                    throw new InvalidOperationException("Console input encoding changed while starting the binary PCM pipe. Retry with a new encoder.");
                 _running = true;
                 _writerThread = StartWorker(WriteInput, "HD820 AC3 input",true);
                 _readerThread = StartWorker(ReadBursts, "HD820 AC3 output",true);
@@ -297,7 +309,7 @@ namespace Hd820GameBridge
             finally
             {
                 Interlocked.Exchange(ref _inFlightInputFrames, 0);
-                try { _process.StandardInput.Close(); } catch { }
+                try { _process.StandardInput.BaseStream.Close(); } catch { }
             }
         }
 

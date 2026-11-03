@@ -1,0 +1,7 @@
+[
+  {
+    "file": "EncoderPreambleHarness.cs",
+    "main": "EncoderPreambleHarness",
+    "args": ["{src}/encoder/silence-ac3-640k.spdif", "{output}/encoder-preamble", "{ffmpeg}"]
+  }
+]

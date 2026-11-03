@@ -136,12 +136,12 @@ namespace Hd820GameBridge {
   internal MainForm(bool background,bool autoStart,EventWaitHandle showSignal,EventWaitHandle exitSignal){
    startHidden=background;autoStartPending=autoStart;showRequest=showSignal;exitRequest=exitSignal;ShowInTaskbar=!background;
    nextAutoStart=DateTime.UtcNow.AddSeconds(2);autoStartDeadline=DateTime.UtcNow.AddMinutes(2);
-   Text="HD820 游戏 5.1 助手 · v3.3.1 · 六声道电平";ClientSize=new Size(860,Math.Min(980,Math.Max(640,Screen.PrimaryScreen.WorkingArea.Height-90)));MinimumSize=new Size(730,680);StartPosition=FormStartPosition.CenterScreen;Font=new Font("Microsoft YaHei UI",9.75f);BackColor=UiTheme.Window;AutoScaleMode=AutoScaleMode.Dpi;AutoScroll=true;AutoScrollMinSize=new Size(0,980);
+   Text="HD820 游戏 5.1 助手 · v3.3.2 · 六声道电平";ClientSize=new Size(860,Math.Min(980,Math.Max(640,Screen.PrimaryScreen.WorkingArea.Height-90)));MinimumSize=new Size(730,680);StartPosition=FormStartPosition.CenterScreen;Font=new Font("Microsoft YaHei UI",9.75f);BackColor=UiTheme.Window;AutoScaleMode=AutoScaleMode.Dpi;AutoScroll=true;AutoScrollMinSize=new Size(0,980);
    content.Location=Point.Empty;content.Size=new Size(ClientSize.Width,980);content.Anchor=AnchorStyles.Top|AnchorStyles.Left;content.BackColor=UiTheme.Window;base.Controls.Add(content);
    Layout+=delegate{if(content.Width!=ClientSize.Width)content.Width=ClientSize.Width;};
    try{using(var appIcon=Icon.ExtractAssociatedIcon(Application.ExecutablePath)){if(appIcon!=null)Icon=new Icon(appIcon,appIcon.Width,appIcon.Height);}}catch{}
    // 顶部：标题 + 副标题 + 状态胶囊
-   content.Controls.Add(new Label{Text="HD820 游戏 5.1 助手 · v3.3.1",Font=new Font(Font.FontFamily,15.5f,FontStyle.Bold),ForeColor=UiTheme.PrimaryText,AutoSize=true,Location=new Point(28,16)});
+   content.Controls.Add(new Label{Text="HD820 游戏 5.1 助手 · v3.3.2",Font=new Font(Font.FontFamily,15.5f,FontStyle.Bold),ForeColor=UiTheme.PrimaryText,AutoSize=true,Location=new Point(28,16)});
    content.Controls.Add(new Label{Text="游戏 5.1 → 实时 AC3 → HD820 → 六路音箱",Font=new Font(Font.FontFamily,9f),ForeColor=UiTheme.SecondaryText,AutoSize=true,Location=new Point(31,56)});
    pill.Location=new Point(ClientSize.Width-24-92,20);pill.Anchor=AnchorStyles.Top|AnchorStyles.Right;pill.SetState("就绪",UiTheme.Gray,UiTheme.GrayBack,UiTheme.Gray);content.Controls.Add(pill);
    // 卡片1：音频链路

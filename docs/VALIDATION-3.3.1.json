@@ -105,7 +105,7 @@
   "productionSmoke": {
     "scheduledTaskRunStartedBridge": true,
     "originalPreferencesPreserved": true,
-    "closeToTrayAndSameProcessRestore": true,
+    "closeToTrayAndSameProcessRestore": null,
     "desktopAndLogonTargetsUnified": true
   },
   "limits": [
@@ -113,6 +113,7 @@
     "Scheduled task Run is verified; a fresh OS logon/reboot is not.",
     "No physical loopback or end-to-end latency measurement.",
     "The binary hash identifies this local reviewed build; C# compiler output is not claimed bit-reproducible.",
-    "Hosted CI status is available from the repository Actions page and is separate from these local results."
+    "Hosted CI status is available from the repository Actions page and is separate from these local results.",
+    "Version 3.3.1 has offline tray fixtures only; the prior live close/restore observation belongs to 3.3.0."
   ]
 }
