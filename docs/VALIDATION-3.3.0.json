@@ -1,0 +1,118 @@
+{
+  "version": "3.3.0",
+  "date": "2026-11-03",
+  "localPlatform": "Windows 11 x64 build 26300",
+  "status": "offline-regressions-passed",
+  "reviewedBinarySha256": "fe5c55103ad6f4d43adea470b1c84bab347cd32eff431cffb1b16a6cc2696d50",
+  "groups": [
+    {
+      "name": "ChannelMapperHarness",
+      "status": "passed",
+      "seconds": 0.344
+    },
+    {
+      "name": "ClockSynchronizerHarness",
+      "status": "passed",
+      "seconds": 5.515
+    },
+    {
+      "name": "MeterHarness",
+      "status": "passed",
+      "seconds": 0.438
+    },
+    {
+      "name": "EncoderHarness",
+      "status": "passed",
+      "seconds": 6.422
+    },
+    {
+      "name": "BassManagerHarness",
+      "status": "passed",
+      "seconds": 3.734
+    },
+    {
+      "name": "EncoderDropHarness",
+      "status": "passed",
+      "seconds": 0.735
+    },
+    {
+      "name": "EncoderLifecycleHarness",
+      "status": "passed",
+      "seconds": 2.546
+    },
+    {
+      "name": "StopAndCarrierHarness",
+      "status": "passed",
+      "seconds": 4.938
+    },
+    {
+      "name": "TrayRestoreHarness",
+      "status": "passed",
+      "seconds": 19.828
+    },
+    {
+      "name": "TrayLifecycleHarness",
+      "status": "passed",
+      "seconds": 2.828
+    },
+    {
+      "name": "DeepAudioRegressionHarness",
+      "status": "passed",
+      "seconds": 1.75
+    },
+    {
+      "name": "UiLifecycleHarness",
+      "status": "passed",
+      "seconds": 3.688
+    }
+  ],
+  "roundtrip": {
+    "channels": 6,
+    "channelIsolation": true,
+    "bassAndNativeLfe": true,
+    "overflowChannelAlignment": true,
+    "silenceBelowMinus100DbFs": true
+  },
+  "deepAudioCases": [
+    "finite-math-and-denormal-silence",
+    "complete-carrier-rejection",
+    "engine-lifecycle-and-gap-telemetry",
+    "consistent-output-clock-snapshot",
+    "concurrent-padding-mode-reset",
+    "encoder-lifecycle-and-pipe-completion"
+  ],
+  "deepAudioAssertions": 51520,
+  "uiRegressionCases": 14,
+  "trayRestoreCases": 8,
+  "lifecycleCases": 20,
+  "sourceHashes": {
+    "src/AppLifetime.cs": "d527f51deb0d008a39ead0a1a91026b1b8825f533995f4a4ecd5de37277d80bf",
+    "src/AssemblyInfo.cs": "23a61dc62489577599fa353ce741b596cc1ac8880909ebb82656ca754516f92b",
+    "src/AudioScheduler.cs": "e116f95b159f84659dc8abe48657c7a8c88e496e7a793933b0fce4a14deba7d3",
+    "src/BassManager.cs": "9eaa58d9c337559d0bb0be6473d68abf8a5c60b7e9cba797b4ed55b7cb9995e5",
+    "src/BridgeEngine.cs": "74adeaf18382c0938cc1dd03c9e369b61a71c7fa113b43065075943e71eb1d51",
+    "src/ChannelMeter.cs": "a1aee73a34570e279298d9ece1c91635b2742c843bb79a1a75314c8a90fae5d3",
+    "src/ChannelMeterControl.cs": "94516ec117086de4c0b88f699862810e49b925f32b0b52004e391ab36eb03d17",
+    "src/CoreAudio.cs": "23ce353474c21d739d358fac7dff2905bb96183fa353a2b9fa34c196f7870fbf",
+    "src/ModernUi.cs": "d7ec670c32141b778758e32e7bd30e5ef160c33ba6153ae05e59b07b1c1bce19",
+    "src/PcmClockSynchronizer.cs": "9a27ad7f3ffa6452bb84f8c1f6d761bac30359a7cbea36c238b2a213306f7357",
+    "src/Program.cs": "df10fe95cf8cd2defa885bf81d09be3c17e71d3a89cac568dcd6c5f3b5694a54",
+    "src/RuntimeConfig.cs": "54a593c84c2ded6e056fb980b0de8a9338d56e58bb2268299335f43cf79b6108",
+    "src/VirtualStimulus.cs": "006f38869bdebc1ce4b4eaf98eb02dd83d3ed3b28b69c9009cb67966e54418aa",
+    "src/encoder/RealtimeAc3Encoder.cs": "c85b81d6e4cf5c11a115943d18c5c468ee388728169a2f13211e84b7fc90ddc8",
+    "src/reviewer/AudioPolicy.cs": "075df8bd9abc06bbe99bc1d6c9434cfc7540ce13805012efb0ebcf489d4335ad"
+  },
+  "productionSmoke": {
+    "scheduledTaskRunStartedBridge": true,
+    "originalPreferencesPreserved": true,
+    "closeToTrayAndSameProcessRestore": true,
+    "desktopAndLogonTargetsUnified": true
+  },
+  "limits": [
+    "User was unavailable for listening; audible stutter improvement is unconfirmed.",
+    "Scheduled task Run is verified; a fresh OS logon/reboot is not.",
+    "No physical loopback or end-to-end latency measurement.",
+    "The binary hash identifies this local reviewed build; C# compiler output is not claimed bit-reproducible.",
+    "Hosted CI status is available from the repository Actions page and is separate from these local results."
+  ]
+}

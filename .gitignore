@@ -1,0 +1,17 @@
+/dist/
+/test-results/
+**/bin/
+**/obj/
+**/logs/
+**/ffmpeg-path.txt
+**/bass-settings.txt
+**/routing-before.xml
+**/*.tmp
+**/__pycache__/
+*.exe
+*.pdb
+*.lnk
+*.zip
+.vs/
+.env*
+!.env.example
