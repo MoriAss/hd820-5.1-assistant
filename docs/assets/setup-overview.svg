@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="1364" viewBox="0 0 640 1364" role="img" aria-labelledby="title desc">
+<title id="title">第一次使用：五步设置</title>
+<desc id="desc">依次安装Voicemeeter并重启Windows，把多声道入口设为5.1和48kHz，将ffmpeg.exe放在助手旁，选择Voicemeeter入口和HD820数字输出，最后以小音量逐声道确认。此图是设置流程示意，不是软件界面截图。</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#087f8c"/></marker></defs>
+<rect width="640" height="1364" rx="20" fill="#f6f9fb"/>
+<text x="32" y="54" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="36" font-weight="700" fill="#173247" text-anchor="start" data-max-width="576">第一次使用：五步设置</text>
+<text x="32" y="96" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="26" font-weight="400" fill="#466078" text-anchor="start" data-max-width="576">接好硬件后，再按顺序完成下面五步</text>
+<rect x="32" y="132" width="576" height="172" rx="16" fill="white" stroke="#c7d9e3" stroke-width="2"/>
+<circle cx="76" cy="172" r="25" fill="#087f8c"/>
+<text x="76" y="181" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="28" font-weight="700" fill="#ffffff" text-anchor="middle" data-max-width="44">1</text>
+<text x="116" y="181" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="28" font-weight="700" fill="#173247" text-anchor="start" data-max-width="464">安装 Voicemeeter</text>
+<text x="116" y="226" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="26" font-weight="400" fill="#466078" text-anchor="start" data-max-width="464">从官方下载安装</text>
+<text x="116" y="266" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="26" font-weight="400" fill="#466078" text-anchor="start" data-max-width="464">安装后重启 Windows</text>
+<path d="M320 309 V321" fill="none" stroke="#087f8c" stroke-width="4"/>
+<path d="M312 318 L320 330 L328 318 Z" fill="#087f8c"/>
+<rect x="32" y="348" width="576" height="172" rx="16" fill="white" stroke="#c7d9e3" stroke-width="2"/>
+<circle cx="76" cy="388" r="25" fill="#087f8c"/>
+<text x="76" y="397" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="28" font-weight="700" fill="#ffffff" text-anchor="middle" data-max-width="44">2</text>
+<text x="116" y="397" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="28" font-weight="700" fill="#173247" text-anchor="start" data-max-width="464">入口设为 5.1 / 48 kHz</text>
+<text x="116" y="442" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="26" font-weight="400" fill="#466078" text-anchor="start" data-max-width="464">配置 Voicemeeter 多声道入口</text>
+<text x="116" y="482" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="26" font-weight="400" fill="#466078" text-anchor="start" data-max-width="464">先确认不是双声道</text>
+<path d="M320 525 V537" fill="none" stroke="#087f8c" stroke-width="4"/>
+<path d="M312 534 L320 546 L328 534 Z" fill="#087f8c"/>
+<rect x="32" y="564" width="576" height="172" rx="16" fill="white" stroke="#c7d9e3" stroke-width="2"/>
+<circle cx="76" cy="604" r="25" fill="#087f8c"/>
+<text x="76" y="613" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="28" font-weight="700" fill="#ffffff" text-anchor="middle" data-max-width="44">3</text>
+<text x="116" y="613" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="28" font-weight="700" fill="#173247" text-anchor="start" data-max-width="464">准备 FFmpeg</text>
+<text x="116" y="658" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="26" font-weight="400" fill="#466078" text-anchor="start" data-max-width="464">把 ffmpeg.exe 放在助手旁</text>
+<text x="116" y="698" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="26" font-weight="400" fill="#466078" text-anchor="start" data-max-width="464">也可放入助手的 bin 文件夹</text>
+<path d="M320 741 V753" fill="none" stroke="#087f8c" stroke-width="4"/>
+<path d="M312 750 L320 762 L328 750 Z" fill="#087f8c"/>
+<rect x="32" y="780" width="576" height="188" rx="16" fill="white" stroke="#c7d9e3" stroke-width="2"/>
+<circle cx="76" cy="820" r="25" fill="#087f8c"/>
+<text x="76" y="829" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="28" font-weight="700" fill="#ffffff" text-anchor="middle" data-max-width="44">4</text>
+<text x="116" y="829" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="28" font-weight="700" fill="#173247" text-anchor="start" data-max-width="464">在助手里选对设备</text>
+<text x="116" y="874" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="26" font-weight="400" fill="#466078" text-anchor="start" data-max-width="464">入口：Voicemeeter 多声道</text>
+<text x="116" y="914" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="26" font-weight="400" fill="#466078" text-anchor="start" data-max-width="464">输出：HD820 数字输出</text>
+<path d="M320 973 V985" fill="none" stroke="#087f8c" stroke-width="4"/>
+<path d="M312 982 L320 994 L328 982 Z" fill="#087f8c"/>
+<rect x="32" y="1012" width="576" height="252" rx="16" fill="white" stroke="#c7d9e3" stroke-width="2"/>
+<circle cx="76" cy="1052" r="25" fill="#087f8c"/>
+<text x="76" y="1061" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="28" font-weight="700" fill="#ffffff" text-anchor="middle" data-max-width="44">5</text>
+<text x="116" y="1061" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="28" font-weight="700" fill="#173247" text-anchor="start" data-max-width="464">逐声道确认</text>
+<text x="116" y="1106" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="26" font-weight="400" fill="#466078" text-anchor="start" data-max-width="464">低音量开始，点击逐声道测试</text>
+<text x="116" y="1146" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="26" font-weight="400" fill="#466078" text-anchor="start" data-max-width="464">左前 → 右前 → 中置 → 低音</text>
+<text x="116" y="1186" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="26" font-weight="400" fill="#466078" text-anchor="start" data-max-width="464">左环绕 → 右环绕</text>
+<text x="116" y="1226" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="26" font-weight="400" fill="#466078" text-anchor="start" data-max-width="464">逐个确认从对应音箱出声</text>
+<text x="320" y="1310" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="28" font-weight="700" fill="#173247" text-anchor="middle" data-max-width="576">先小音量测试，再正常使用。</text>
+<text x="320" y="1348" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="26" font-weight="400" fill="#466078" text-anchor="middle" data-max-width="576">具体选项和下载链接见文字指南</text>
+</svg>
