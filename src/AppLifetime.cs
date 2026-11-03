@@ -34,9 +34,15 @@ namespace Hd820GameBridge {
    try{return ((SecurityIdentifier)new NTAccount(user).Translate(typeof(SecurityIdentifier))).Value==CurrentSid;}
    catch(IdentityNotMappedException){return false;}
   }
-  static object FindTask(dynamic folder){
-   try{return folder.GetTask(StartupTaskName);}
-   catch(COMException error){if(error.ErrorCode==unchecked((int)0x80070002) || error.ErrorCode==unchecked((int)0x8004130F))return null;throw;}
+  internal static bool IsMissingTask(Exception error){
+   // IDispatch can map HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND) to
+   // FileNotFoundException rather than COMException on a clean machine.
+   return error!=null && error.HResult==unchecked((int)0x80070002);
+  }
+  static object FindTask(dynamic folder){return FindTask(folder,StartupTaskName);}
+  internal static object FindTask(dynamic folder,string taskName){
+   try{return folder.GetTask(taskName);}
+   catch(Exception error){if(IsMissingTask(error))return null;throw;}
   }
 
   internal static string StartupCommand(string executable) {

@@ -5,12 +5,17 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Web.Script.Serialization;
 using System.Windows.Forms;
 using Hd820GameBridge;
 
 internal static class UiLifecycleHarness {
+ public sealed class ThrowingTaskFolder {
+  public Exception Failure;public int Calls;public string RequestedName;
+  public object GetTask(string name){Calls++;RequestedName=name;throw Failure;}
+ }
  const BindingFlags Flags=BindingFlags.Instance|BindingFlags.Public|BindingFlags.NonPublic;
  static readonly List<object> cases=new List<object>();static int failed;
  static void Require(bool value,string message){if(!value)throw new InvalidOperationException(message);}
@@ -22,6 +27,27 @@ internal static class UiLifecycleHarness {
   string root=AppDomain.CurrentDomain.BaseDirectory;
   if(File.Exists(Path.Combine(root,"routing-before.xml")) || File.Exists(Path.Combine(root,"bass-settings.txt")))throw new InvalidOperationException("Fixture must not contain routing or preferences.");
   Directory.CreateDirectory(Path.Combine(root,"logs"));Application.EnableVisualStyles();Application.SetCompatibleTextRenderingDefault(false);
+  Run("missing_task_com_hresult_is_absent",delegate{
+   var error=new COMException("synthetic missing task",unchecked((int)0x80070002));var folder=new ThrowingTaskFolder{Failure=error};string name="HD820_Fixture_"+Guid.NewGuid().ToString("N");
+   Require(AppLifetime.IsMissingTask(error) && AppLifetime.FindTask(folder,name)==null && folder.Calls==1 && folder.RequestedName==name,"A missing-task COM HRESULT must be treated as absent.");
+  });
+  Run("missing_task_mapped_file_exception_is_absent",delegate{
+   var error=Marshal.GetExceptionForHR(unchecked((int)0x80070002),new IntPtr(-1));Require(error is FileNotFoundException,"The missing-file HRESULT must reproduce the CLR-mapped exception type.");
+   var folder=new ThrowingTaskFolder{Failure=error};Require(AppLifetime.IsMissingTask(error) && AppLifetime.FindTask(folder,"HD820_Fixture_Mapped")==null,"Mapped FileNotFoundException must have the same absent-task result.");
+  });
+  Run("task_access_denied_is_not_missing",delegate{
+   foreach(Exception error in new Exception[]{new COMException("synthetic denied",unchecked((int)0x80070005)),new UnauthorizedAccessException("synthetic denied")}){
+    Require(!AppLifetime.IsMissingTask(error),"Access denied must not mean an absent task.");var folder=new ThrowingTaskFolder{Failure=error};bool preserved=false;try{AppLifetime.FindTask(folder,"HD820_Fixture_Denied");}catch(Exception observed){preserved=Object.ReferenceEquals(observed,error);}Require(preserved,"The original access error must propagate unchanged.");
+   }
+  });
+  Run("task_account_configuration_error_is_not_missing",delegate{
+   // Microsoft WinError.h: 0x8004130F is SCHED_E_ACCOUNT_INFORMATION_NOT_SET, not task-not-found.
+   var error=new COMException("synthetic task account configuration error",unchecked((int)0x8004130F));Require(!AppLifetime.IsMissingTask(error),"An existing task with missing account information is not an absent task.");bool preserved=false;try{AppLifetime.FindTask(new ThrowingTaskFolder{Failure=error},"HD820_Fixture_Account");}catch(Exception observed){preserved=Object.ReferenceEquals(observed,error);}Require(preserved,"Task account errors must propagate.");Require(!AppLifetime.IsMissingTask(new IOException("synthetic IO error")),"Unrelated IO errors must not be swallowed.");
+  });
+  Run("random_missing_scheduled_task_readonly_getter",delegate{
+   object service=null,folder=null;try{service=Activator.CreateInstance(Type.GetTypeFromProgID("Schedule.Service",true));((dynamic)service).Connect();folder=((dynamic)service).GetFolder(@"\");string randomName="HD820_ReadOnly_Missing_"+Guid.NewGuid().ToString("N");Require(AppLifetime.FindTask(folder,randomName)==null,"A real random non-existent task must return absent without exception.");}
+   finally{if(folder!=null && Marshal.IsComObject(folder))Marshal.ReleaseComObject(folder);if(service!=null && Marshal.IsComObject(service))Marshal.ReleaseComObject(service);}
+  });
   Run("combo_populates_and_preserves_selection",delegate{
    using(var owner=new ModernCombo()){owner.Items.AddRange(new object[]{"one","two","three"});owner.SelectedIndex=1;using(var popup=new ModernComboPopup(owner,220,3)){var list=(ListBox)Get(popup,"list");Require(list.Items.Count==3 && list.SelectedIndex==1,"Popup must contain all devices and preserve selection.");popup.Commit(2);Require(owner.SelectedIndex==2,"Popup commit must update owner.");}}
   });
